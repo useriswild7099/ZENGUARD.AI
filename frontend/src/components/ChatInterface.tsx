@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, memo } from 'react';
+import { useState, useEffect, useRef, memo, useCallback } from 'react';
 import Image from 'next/image';
 import { chatClient, ChatMode, ChatMessage } from '@/lib/api';
 import { prepareText } from '@/lib/privacy';
@@ -93,10 +93,10 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
   }, [selectedMode]);
 
   // Handle mode selection
-  const handleModeSelect = (mode: ChatMode) => {
+  const handleModeSelect = useCallback((mode: ChatMode) => {
     setSelectedMode(mode);
     setMessages([]);
-  };
+  }, []);
 
   // Handle sending a message
   const handleSendMessage = async () => {
@@ -145,10 +145,10 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
   };
 
   // Clear chat and go back to mode selection
-  const handleNewChat = () => {
+  const handleNewChat = useCallback(() => {
     setSelectedMode(null);
     setMessages([]);
-  };
+  }, []);
 
   // Mode selection screen
   if (!selectedMode) {

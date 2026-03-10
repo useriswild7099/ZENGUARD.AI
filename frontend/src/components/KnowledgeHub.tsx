@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useMemo, useEffect, useLayoutEffect, memo } from 'react';
 import { KNOWLEDGE_ARTICLES, KnowledgeArticle, KnowledgeCategory, BookRecommendation } from '@/lib/knowledge';
 import { MASTER_LIBRARY } from '@/lib/books_data';
 import { 
@@ -20,7 +20,7 @@ interface KnowledgeHubProps {
   theme?: 'nature' | 'light' | 'dark';
 }
 
-export default function KnowledgeHub({ onBack, onNavigateToHelp, initialArticle, sessionLanguage = 'English', theme = 'nature' }: KnowledgeHubProps) {
+const KnowledgeHub = memo(function KnowledgeHub({ onBack, onNavigateToHelp, initialArticle, sessionLanguage = 'English', theme = 'nature' }: KnowledgeHubProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<KnowledgeCategory | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<KnowledgeArticle | null>(null);
@@ -581,4 +581,6 @@ export default function KnowledgeHub({ onBack, onNavigateToHelp, initialArticle,
       </div>
     </div>
   );
-}
+});
+
+export default KnowledgeHub;

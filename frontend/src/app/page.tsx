@@ -70,7 +70,7 @@ const VideoBackground = memo(({ activeView, isLight }: { activeView: string; isL
         </video>
       ) : (
         <video
-          autoPlay loop muted playsInline preload="metadata"
+          autoPlay loop muted playsInline preload="none"
           className="absolute w-full h-full object-cover will-change-transform"
           style={{ 
             filter: activeView === 'help' ? 'brightness(0.2)' : activeView === 'knowledge' ? 'brightness(0.4)' : 'brightness(0.6)',
@@ -177,6 +177,7 @@ export default function Home() {
                   isLight ? 'bg-zinc-100 hover:bg-zinc-200 border-zinc-200 text-zinc-600' : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/60 hover:text-white'
                 }`}
                 title={isMuted ? "Unmute" : "Mute"}
+                aria-label={isMuted ? "Unmute background music" : "Mute background music"}
               >
                 {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4 animate-pulse" />}
               </button>
@@ -201,7 +202,11 @@ export default function Home() {
               </div>
 
               {/* AI Status Indicator */}
-              <div className={`flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-black border backdrop-blur-md px-3 py-2 rounded-xl h-10 dark:bg-white/5 dark:border-white/10 bg-zinc-100 border-zinc-200`}>
+              <div 
+                className={`flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-black border backdrop-blur-md px-3 py-2 rounded-xl h-10 dark:bg-white/5 dark:border-white/10 bg-zinc-100 border-zinc-200`}
+                role="status"
+                aria-live="polite"
+              >
                 <div className={`w-2 h-2 rounded-full ${apiConnected ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]' : 'bg-rose-400'}`}></div>
                 <span className={`font-black dark:text-white/60 text-zinc-600`}>{apiConnected ? 'AI READY' : 'OFFLINE'}</span>
               </div>

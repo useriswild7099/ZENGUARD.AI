@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Space_Grotesk, Courier_Prime } from "next/font/google";
 import "./globals.css";
 import { DYNAMIC_CLASSES } from '@/lib/safelist';
+import { SmoothScroller } from "@/components/SmoothScroller";
 
 // Ensure Tailwind sees these classes
 const _safelist = DYNAMIC_CLASSES;
@@ -27,12 +28,23 @@ const courierPrime = Courier_Prime({
 export const metadata: Metadata = {
   title: "ZenGuard AI - Your Safe Space",
   description: "Anonymous, privacy-first mental health support. Express yourself freely - nothing is stored.",
-  keywords: ["mental health", "student wellness", "anonymous journaling", "stress relief", "privacy-first"],
+  applicationName: "ZenGuard AI",
+  keywords: ["mental health", "student wellness", "anonymous journaling", "stress relief", "privacy-first", "mindfulness"],
   authors: [{ name: "ZenGuard AI" }],
   openGraph: {
     title: "ZenGuard AI - Your Safe Space",
     description: "Express yourself freely. We analyze, support, and never store.",
     type: "website",
+    siteName: "ZenGuard AI",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ZenGuard AI - Your Safe Space",
+    description: "Anonymous, privacy-first mental health support. Express yourself freely - nothing is stored.",
+  },
+  appleWebApp: {
+    title: "ZenGuard AI",
+    statusBarStyle: "black-translucent",
   },
 };
 
@@ -55,9 +67,11 @@ export default function RootLayout({
         </div>
         
         {/* Main Content */}
-        <main className="min-h-screen">
-          {children}
-        </main>
+        <SmoothScroller>
+          <div className="min-h-screen">
+            {children}
+          </div>
+        </SmoothScroller>
         
         {/* Footer */}
         <footer className="text-center py-6 text-sm text-gray-500">

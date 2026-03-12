@@ -37,38 +37,66 @@ Experience conversations with a diverse range of companions, from **Stoic Philos
 
 ---
 
-## 🚀 Getting Started
+## 🚀 How to Run Locally (Foolproof Guide)
 
-### 1. Prerequisites
-- **Ollama**: [Download & Install](https://ollama.com)
-- **Node.js**: v18.0 or higher
-- **Python**: v3.10 or higher
+ZenGuard AI runs 100% on your local machine to guarantee your privacy. It is literally impossible for us to see your data because nothing leaves your computer! 
 
-### 2. Prepare the AI
+Follow these 3 simple steps to get started:
+
+### 1. Install Prerequisites
+Before you start, make sure you have installed:
+- **[Ollama](https://ollama.com/)** (The engine that runs the AI locally)
+- **[Node.js](https://nodejs.org/)** (v18.0 or higher)
+- **[Python](https://www.python.org/downloads/)** (v3.10 or higher)
+
+### 2. Download the AI Model
+Open your terminal or command prompt and run this command. This will download the specific AI brain (Gemma 3:4B) that ZenGuard uses.
 ```bash
 ollama pull gemma3:4b
 ```
 
-### 3. Installation
-Clone the repository and install dependencies for both layers:
+### 3. Start the Project
 
-#### Backend Setup
+First, clone (download) the repository to your computer:
+```bash
+git clone https://github.com/useriswild7099/ZENGUARD.AI.git
+cd ZENGUARD.AI
+```
+
+You need to open **two separate terminal windows**.
+
+**Terminal 1: Start the Backend (The Brain)**
 ```bash
 cd backend
+
+# Create a virtual environment (keeps things clean)
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Activate it (Run ONE of the following based on your OS)
+# Windows:
+venv\Scripts\activate
+# Mac/Linux:
+source venv/bin/activate
+
+# Install the required Python packages
 pip install -r requirements.txt
+
+# Start the server!
 uvicorn main:app --port 8000 --reload
 ```
 
-#### Frontend Setup
+**Terminal 2: Start the Frontend (The Interface)**
 ```bash
 cd frontend
+
+# Install the required Node packages
 npm install
+
+# Start the website!
 npm run dev
 ```
 
-Visit `http://localhost:3500` to start your session.
+That's it! 🎉 Now open your browser and go to `http://localhost:3500` to start chatting with your private companions.
 
 ---
 

@@ -52,46 +52,34 @@ import { Toaster } from '@/components/ui/sonner';
 import React, { memo } from 'react';
 
 // Memoized background component to prevent re-renders when parent state changes
-const VideoBackground = memo(({ activeView, isLight }: { activeView: string; isLight: boolean }) => {
-  const isLandingOrJournal = activeView === 'landing' || activeView === 'journal';
-  
+const StaticBackground = memo(({ activeView, isLight }: { activeView: string; isLight: boolean }) => {
   return (
     <div className={`fixed inset-0 overflow-hidden -z-10 transition-opacity duration-1000 ${isLight ? 'opacity-0' : 'opacity-100'}`} style={{ transform: 'translateZ(0)' }}>
-      {isLandingOrJournal ? (
-        <video
-          autoPlay loop muted playsInline preload="auto"
-          className="absolute w-full h-full object-cover will-change-transform"
-          style={{ 
-            filter: activeView === 'landing' ? 'brightness(0.7)' : 'brightness(0.5)',
-            transform: 'translate3d(0, 0, 0)'
-          }}
-        >
-          <source src="/hero-video.mp4" type="video/mp4" />
-        </video>
-      ) : (
-        <video
-          autoPlay loop muted playsInline preload="none"
-          className="absolute w-full h-full object-cover will-change-transform"
-          style={{ 
-            filter: activeView === 'help' ? 'brightness(0.2)' : activeView === 'knowledge' ? 'brightness(0.4)' : 'brightness(0.6)',
-            transform: 'translate3d(0, 0, 0)'
-          }}
-        >
-          <source src="/chat-bg.mp4" type="video/mp4" />
-        </video>
-      )}
+      {/* 
+        Using a high-quality starry sky image. 
+        If you want to use your exact local file, save it as "public/stars-bg.jpg" and change this src to "/stars-bg.jpg"
+      */}
+      <img
+        src="https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?q=80&w=3000&auto=format&fit=crop"
+        alt="Starry Night Background"
+        className="absolute w-full h-full object-cover will-change-transform"
+        style={{ 
+          filter: activeView === 'landing' ? 'brightness(0.8)' : activeView === 'help' ? 'brightness(0.3)' : 'brightness(0.5)',
+          transform: 'translate3d(0, 0, 0)'
+        }}
+      />
       <div className={`absolute inset-0 transition-all duration-700 ${
         activeView === 'help' ? 'bg-black/80 backdrop-blur-[4px]' :
         activeView === 'knowledge' ? 'bg-black/60 backdrop-blur-[3px]' :
-        activeView === 'chat' ? 'bg-black/40 backdrop-blur-[2px]' :
-        activeView === 'landing' ? 'bg-gradient-to-b from-black/30 via-black/20 to-black/40' :
+        activeView === 'chat' ? 'bg-black/50 backdrop-blur-[2px]' :
+        activeView === 'landing' ? 'bg-gradient-to-b from-black/20 via-transparent to-black/60' :
         'bg-black/50 backdrop-blur-[1px]'
       }`} style={{ transform: 'translateZ(0)' }}></div>
     </div>
   );
 });
 
-VideoBackground.displayName = 'VideoBackground';
+StaticBackground.displayName = 'StaticBackground';
 
 
 export default function Home() {
@@ -158,7 +146,7 @@ export default function Home() {
     }`}>
       <BackgroundMusic isMuted={isMuted} />
 
-      <VideoBackground activeView={activeView} isLight={isLight} />
+      <StaticBackground activeView={activeView} isLight={isLight} />
 
       {/* View Content Hub */}
       {activeView === 'landing' && (

@@ -10,11 +10,11 @@ from typing import List
 class Settings(BaseSettings):
     # Ollama Configuration
     OLLAMA_BASE_URL: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "gemma3:4b"
+    OLLAMA_MODEL: str = "gemma3"  # Use base name, OllamaClient will auto-detect tag
     
     # Server Configuration
     DEBUG: bool = False
-    CORS_ORIGINS: str = "http://localhost:3000"
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3500,http://127.0.0.1:3000,http://127.0.0.1:3500"
     
     # Privacy Settings - These should NEVER be changed to True
     ENABLE_LOGGING: bool = False
@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     
     @property
     def cors_origins_list(self) -> List[str]:
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 
 
 settings = Settings()

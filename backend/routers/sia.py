@@ -15,7 +15,7 @@ from prompts import SIA_SYSTEM_PROMPT
 router = APIRouter()
 
 # Initialize services
-ollama_client = OllamaClient()
+ollama_client = OllamaClient.get_instance()
 text_obfuscator = TextObfuscator()
 
 @router.post("/sia", response_model=SiaResponse)

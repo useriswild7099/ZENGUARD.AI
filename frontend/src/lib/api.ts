@@ -66,6 +66,22 @@ export interface VisualAnalysisResponse {
   data_stored: boolean;
 }
 
+/** Helper to fetch with timeout */
+async function fetchWithTimeout(resource: URL | string | Request, options: RequestInit & { timeout?: number } = {}) {
+  const { timeout = 30000 } = options;
+  
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  
+  const response = await fetch(resource, {
+    ...options,
+    signal: controller.signal
+  });
+  
+  clearTimeout(id);
+  return response;
+}
+
 class SentimentClient {
   private baseUrl: string;
 
@@ -78,7 +94,8 @@ class SentimentClient {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseUrl}/health`);
+      // Shorter timeout for health check
+      const response = await fetchWithTimeout(`${this.baseUrl}/health`, { timeout: 10000 });
       return response.ok;
     } catch {
       return false;
@@ -92,7 +109,7 @@ class SentimentClient {
     text: string,
     sessionId?: string
   ): Promise<AnalysisResponse> {
-    const response = await fetch(`${this.baseUrl}/api/analyze`, {
+    const response = await fetchWithTimeout(`${this.baseUrl}/api/analyze`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -101,6 +118,7 @@ class SentimentClient {
         text,
         session_id: sessionId,
       }),
+      timeout: 60000 // 60s timeout for heavy AI work
     });
 
     if (!response.ok) {
@@ -114,12 +132,13 @@ class SentimentClient {
    * Quick check for real-time feedback while typing
    */
   async quickCheck(text: string): Promise<QuickCheckResponse> {
-    const response = await fetch(`${this.baseUrl}/api/quick-check`, {
+    const response = await fetchWithTimeout(`${this.baseUrl}/api/quick-check`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ text }),
+      timeout: 15000 // 15s timeout
     });
 
     if (!response.ok) {
@@ -133,8 +152,9 @@ class SentimentClient {
    * Get session trends analysis
    */
   async getSessionTrends(sessionId: string): Promise<SessionTrendsResponse> {
-    const response = await fetch(
-      `${this.baseUrl}/api/session/${sessionId}/trends`
+    const response = await fetchWithTimeout(
+      `${this.baseUrl}/api/session/${sessionId}/trends`,
+      { timeout: 30000 }
     );
 
     if (!response.ok) {
@@ -151,9 +171,10 @@ class SentimentClient {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${this.baseUrl}/api/analyze-visual`, {
+    const response = await fetchWithTimeout(`${this.baseUrl}/api/analyze-visual`, {
       method: 'POST',
       body: formData,
+      timeout: 60000 // 60s timeout for multimodal AI work
     });
 
     if (!response.ok) {
@@ -167,8 +188,9 @@ class SentimentClient {
    * Clear session data
    */
   async clearSession(sessionId: string): Promise<void> {
-    await fetch(`${this.baseUrl}/api/session/${sessionId}`, {
+    await fetchWithTimeout(`${this.baseUrl}/api/session/${sessionId}`, {
       method: 'DELETE',
+      timeout: 10000
     });
   }
 }
@@ -207,16 +229,26 @@ class ChatClient {
   }
 
   /**
-   * Get available chat modes
+   * Get available chat modes with robust offline fallback
    */
   async getModes(): Promise<ChatMode[]> {
+    const fallbackModes: ChatMode[] = [
+      { id: "compassionate_friend", name: "Compassionate Friend", emoji: "🤗", description: "A warm, understanding listener who offers emotional support, validation, and a safe space to share your feelings.", category: "general", color: "purple", image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200&auto=format&fit=crop" },
+      { id: "academic_coach", name: "Academic Coach", emoji: "📚", description: "Helps with study stress, time management, and academic motivation. Practical, structured, and encouraging.", category: "general", color: "blue", image: "https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=200&auto=format&fit=crop" },
+      { id: "mindfulness_guide", name: "Mindfulness Guide", emoji: "🧘", description: "Guides you through breathing exercises and grounding techniques. Calm, centered, and peaceful.", category: "general", color: "teal", image: "https://images.unsplash.com/photo-1511295742362-92c96b124e52?q=80&w=200&auto=format&fit=crop" },
+      { id: "motivational_coach", name: "Motivational Coach", emoji: "🚀", description: "Inspires action and helps you see your potential. Energetic, positive, and forward-looking.", category: "general", color: "orange", image: "https://images.unsplash.com/photo-1526498460520-4c246339dccb?q=80&w=200&auto=format&fit=crop" },
+      { id: "mother", name: "Mother", emoji: "👩‍👧", description: "Warm, nurturing, and always there for you. Offers unconditional support and gentle guidance.", category: "family", color: "rose", image: "https://images.unsplash.com/photo-1544281679-05e8e8609f7a?q=80&w=200&auto=format&fit=crop" },
+      { id: "father", name: "Father", emoji: "👨‍👦", description: "Supportive, wise, and believes in you. Provides a steady, grounded perspective and practical life advice.", category: "family", color: "blue", image: "https://images.unsplash.com/photo-1582216149959-19ebbb3c19f5?q=80&w=200&auto=format&fit=crop" }
+    ];
+
     try {
-      const response = await fetch(`${this.baseUrl}/api/modes`);
-      if (!response.ok) return [];
+      const response = await fetchWithTimeout(`${this.baseUrl}/api/modes`, { timeout: 8000 });
+      if (!response.ok) return fallbackModes;
       const data = await response.json();
-      return data.modes || [];
+      return data.modes && data.modes.length > 0 ? data.modes : fallbackModes;
     } catch {
-      return [];
+      // If backend is unreachable (e.g., deployed on Vercel without a live backend), return beautiful fallbacks so UI never breaks
+      return fallbackModes;
     }
   }
 
@@ -228,7 +260,7 @@ class ChatClient {
     mode: string,
     history: ChatMessage[]
   ): Promise<ChatResponse> {
-    const response = await fetch(`${this.baseUrl}/api/chat`, {
+    const response = await fetchWithTimeout(`${this.baseUrl}/api/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -238,6 +270,7 @@ class ChatClient {
         mode,
         history,
       }),
+      timeout: 60000 // 60s timeout for AI response
     });
 
     if (!response.ok) {
@@ -251,8 +284,9 @@ class ChatClient {
    * Clear chat (client-side confirmation)
    */
   async clearChat(): Promise<void> {
-    await fetch(`${this.baseUrl}/api/chat/clear`, {
+    await fetchWithTimeout(`${this.baseUrl}/api/chat/clear`, {
       method: 'DELETE',
+      timeout: 10000
     });
   }
 }

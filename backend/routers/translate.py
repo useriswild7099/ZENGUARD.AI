@@ -8,7 +8,7 @@ from models.schemas import TranslationRequest, TranslationResponse
 from services.ollama_client import OllamaClient
 
 router = APIRouter()
-ollama_client = OllamaClient()
+ollama_client = OllamaClient.get_instance()
 
 TRANSLATION_SYSTEM_PROMPT = """
 [IDENTITY]

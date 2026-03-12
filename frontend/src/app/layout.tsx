@@ -5,6 +5,7 @@ import { DYNAMIC_CLASSES } from '@/lib/safelist';
 import { SmoothScroller } from "@/components/SmoothScroller";
 
 // Ensure Tailwind sees these classes
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _safelist = DYNAMIC_CLASSES;
 
 const inter = Inter({

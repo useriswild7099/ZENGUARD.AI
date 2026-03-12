@@ -128,7 +128,7 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
       console.error('Chat error:', error);
       const errorMessage: ChatMessage = { 
         role: 'assistant', 
-        content: "I'm having trouble connecting right now. Please make sure Ollama is running with the gemma3:4b model." 
+        content: "Hi! I am currently running in a limited web environment. To chat with me and other companions, please download ZenGuard AI and run it locally. \n\nYou can find the full, private, local installation instructions at: https://github.com/useriswild7099/ZENGUARD.AI" 
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {

@@ -1,131 +1,235 @@
 """
-Ollama Client - Interface to local Gemma 3:4B model
-Handles all communication with the Ollama API
+Ollama Client - Interface to local Gemma 3 model
+Production-grade with persistent connection pooling, automatic retries,
+and dynamic model resolution.
 """
 
 import httpx
 import json
+import asyncio
+import logging
 from typing import Optional, Dict, Any
+
 from config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class OllamaClient:
-    """Async client for Ollama API"""
+    """Robust Async client for Ollama API with persistent connection pooling."""
+    
+    _instance: Optional['OllamaClient'] = None
     
     def __init__(self):
         self.base_url = settings.OLLAMA_BASE_URL
-        self.model = settings.OLLAMA_MODEL
-        self.timeout = httpx.Timeout(300.0, connect=10.0)  # 5 min for slow hardware/large tasks
-        self.fast_timeout = httpx.Timeout(60.0, connect=5.0)  # 1 min for quick checks
+        self.base_model_name = settings.OLLAMA_MODEL
+        self.resolved_model: Optional[str] = None
+        self.max_retries = 3
+        
+        # Persistent clients — created once, reused across all requests
+        self._client: Optional[httpx.AsyncClient] = None
+        self._fast_client: Optional[httpx.AsyncClient] = None
     
-    async def health_check(self) -> bool:
-        """Check if Ollama is running and model is available"""
+    @classmethod
+    def get_instance(cls) -> 'OllamaClient':
+        """Singleton accessor — ensures one client across the entire app."""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+    
+    async def startup(self):
+        """Initialize persistent HTTP clients. Call once on app startup."""
+        if self._client is None:
+            limits = httpx.Limits(
+                max_keepalive_connections=20,
+                max_connections=50,
+                keepalive_expiry=30.0
+            )
+            self._client = httpx.AsyncClient(
+                limits=limits,
+                timeout=httpx.Timeout(120.0, connect=5.0)
+            )
+            self._fast_client = httpx.AsyncClient(
+                limits=limits,
+                timeout=httpx.Timeout(30.0, connect=3.0)
+            )
+            logger.info("Ollama HTTP clients initialized with connection pooling.")
+        
+        # Resolve model on startup
+        await self._resolve_best_model()
+    
+    async def shutdown(self):
+        """Close persistent HTTP clients. Call on app shutdown."""
+        if self._client:
+            await self._client.aclose()
+            self._client = None
+        if self._fast_client:
+            await self._fast_client.aclose()
+            self._fast_client = None
+        logger.info("Ollama HTTP clients closed.")
+    
+    def _get_client(self, fast: bool = False) -> httpx.AsyncClient:
+        """Get the appropriate persistent client."""
+        client = self._fast_client if fast else self._client
+        if client is None:
+            # Fallback: create a one-off client if startup wasn't called
+            return httpx.AsyncClient(
+                timeout=httpx.Timeout(30.0 if fast else 120.0, connect=5.0)
+            )
+        return client
+
+    async def _resolve_best_model(self) -> bool:
+        """Finds the best matching model dynamically to prevent 404/500 errors."""
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(f"{self.base_url}/api/tags")
-                if response.status_code == 200:
-                    data = response.json()
-                    models = [m.get("name", "") for m in data.get("models", [])]
-                    # Check if our model is available (with or without tag)
-                    return any(self.model.split(":")[0] in m for m in models)
-                return False
-        except Exception:
+            client = self._get_client(fast=True)
+            response = await client.get(f"{self.base_url}/api/tags")
+            if response.status_code == 200:
+                data = response.json()
+                models = [m.get("name", "") for m in data.get("models", [])]
+                
+                # Try exact match first
+                if self.base_model_name in models:
+                    self.resolved_model = self.base_model_name
+                    return True
+                
+                # Check for base name match (e.g., config is 'gemma3', found 'gemma3:latest')
+                for m in models:
+                    if m.startswith(self.base_model_name):
+                        self.resolved_model = m
+                        return True
+                
+                logger.warning(f"Required base model '{self.base_model_name}' not found in {models}")
+            else:
+                logger.warning(f"Ollama tags endpoint returned {response.status_code}")
             return False
+        except Exception as e:
+            logger.warning(f"Ollama model resolution failed: {e}")
+            return False
+
+    async def health_check(self) -> bool:
+        """Check if Ollama is running and model is available."""
+        if not self.resolved_model:
+            return await self._resolve_best_model()
+        return True
     
-    async def generate(
-        self,
-        prompt: str,
-        system_prompt: Optional[str] = None,
-        temperature: float = 0.3,
-        max_tokens: int = 512,  # Reduced for faster responses
-        fast: bool = False
-    ) -> str:
-        """
-        Generate a response from Gemma 3:4B
+    async def _execute_with_retry(self, payload: dict, fast: bool = False) -> dict:
+        """Core execution engine with exponential backoff and retries."""
+        if not self.resolved_model:
+            if not await self._resolve_best_model():
+                raise Exception("Ollama model not found or service unreachable.")
+                
+        payload["model"] = self.resolved_model
+        client = self._get_client(fast)
         
-        Args:
-            prompt: The user prompt
-            system_prompt: Optional system instructions
-            temperature: Lower = more focused, higher = more creative
-            max_tokens: Maximum response length
-            fast: Use faster timeout for quick responses
-            
-        Returns:
-            Generated text response
-        """
-        messages = []
-        
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        
-        messages.append({"role": "user", "content": prompt})
-        
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "stream": False,
-            "options": {
-                "temperature": temperature,
-                "num_predict": max_tokens,
-                "repeat_penalty": 1.2,   # STRICT non-repetition
-                "top_p": 0.9,            # Diverse vocabulary
-                "top_k": 40              # Standard sampling
-            }
-        }
-        
-        timeout = self.fast_timeout if fast else self.timeout
-        
-        try:
-            async with httpx.AsyncClient(timeout=timeout) as client:
+        last_error = None
+        for attempt in range(self.max_retries):
+            try:
                 response = await client.post(
                     f"{self.base_url}/api/chat",
                     json=payload
                 )
                 response.raise_for_status()
-                data = response.json()
-                return data.get("message", {}).get("content", "")
-        except httpx.TimeoutException:
-            raise Exception("Ollama request timed out. Is the model loaded?")
-        except httpx.HTTPStatusError as e:
-            raise Exception(f"Ollama API error: {e.response.status_code}")
-        except Exception as e:
-            raise Exception(f"Failed to connect to Ollama: {str(e)}")
+                return response.json()
+            except httpx.TimeoutException:
+                last_error = "Ollama request timed out. The system might be overloaded."
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 404:
+                    self.resolved_model = None  # Force re-resolution
+                last_error = f"Ollama API Error: {e.response.status_code} - {e.response.text}"
+            except httpx.RequestError as e:
+                last_error = f"Connection to AI Engine failed: {str(e)}"
+            except Exception as e:
+                last_error = f"Unexpected processing error: {str(e)}"
+                
+            logger.warning(f"Ollama call failed (attempt {attempt+1}/{self.max_retries}): {last_error}")
+            if attempt < self.max_retries - 1:
+                await asyncio.sleep(1.5 * (attempt + 1))
+                
+        raise Exception(f"AI Engine unresponsive after {self.max_retries} attempts. Last error: {last_error}")
+
+    async def generate(
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        temperature: float = 0.3,
+        max_tokens: int = 512,
+        fast: bool = False
+    ) -> str:
+        """Generate text response with high reliability."""
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+        
+        payload = {
+            "messages": messages,
+            "stream": False,
+            "options": {
+                "temperature": temperature,
+                "num_predict": max_tokens,
+                "repeat_penalty": 1.15,
+                "top_p": 0.9,
+                "top_k": 40
+            }
+        }
+        
+        data = await self._execute_with_retry(payload, fast)
+        return data.get("message", {}).get("content", "")
+
+    async def generate_chat(
+        self,
+        messages: list,
+        system_prompt: Optional[str] = None,
+        temperature: float = 0.3,
+        max_tokens: int = 512,
+        fast: bool = False
+    ) -> str:
+        """Generate response from a structured message list (multi-turn)."""
+        full_messages = []
+        if system_prompt:
+            full_messages.append({"role": "system", "content": system_prompt})
+        full_messages.extend(messages)
+        
+        payload = {
+            "messages": full_messages,
+            "stream": False,
+            "options": {
+                "temperature": temperature,
+                "num_predict": max_tokens,
+                "repeat_penalty": 1.15,
+                "top_p": 0.9,
+                "top_k": 40
+            }
+        }
+        
+        data = await self._execute_with_retry(payload, fast)
+        return data.get("message", {}).get("content", "")
     
     async def generate_json(
         self,
         prompt: str,
         system_prompt: Optional[str] = None,
-        temperature: float = 0.2
+        temperature: float = 0.1
     ) -> Dict[str, Any]:
-        """
-        Generate a JSON response from Gemma 3:4B
-        Parses the response as JSON, with fallback handling
-        """
-        # Add JSON instruction to system prompt
-        json_system = (system_prompt or "") + """
-
-IMPORTANT: You MUST respond with valid JSON only. No markdown, no explanations, just the JSON object."""
+        """Generate structured JSON precisely."""
+        json_system = (system_prompt or "") + "\n\nIMPORTANT: You MUST respond with valid JSON only. No markdown formatting or explanations."
         
         response_text = await self.generate(
             prompt=prompt,
             system_prompt=json_system,
-            temperature=temperature
+            temperature=temperature,
+            fast=True
         )
         
-        # Clean up response - remove markdown code blocks if present
         cleaned = response_text.strip()
-        if cleaned.startswith("```json"):
-            cleaned = cleaned[7:]
-        if cleaned.startswith("```"):
-            cleaned = cleaned[3:]
-        if cleaned.endswith("```"):
-            cleaned = cleaned[:-3]
+        if cleaned.startswith("```json"): cleaned = cleaned[7:]
+        if cleaned.startswith("```"): cleaned = cleaned[3:]
+        if cleaned.endswith("```"): cleaned = cleaned[:-3]
         cleaned = cleaned.strip()
         
         try:
             return json.loads(cleaned)
         except json.JSONDecodeError:
-            # Try to extract JSON from the response
             import re
             json_match = re.search(r'\{[^{}]*\}', cleaned, re.DOTALL)
             if json_match:
@@ -133,9 +237,8 @@ IMPORTANT: You MUST respond with valid JSON only. No markdown, no explanations, 
                     return json.loads(json_match.group())
                 except json.JSONDecodeError:
                     pass
-            # Return empty dict if parsing fails
             return {}
-    
+            
     async def generate_multimodal(
         self,
         prompt: str,
@@ -144,25 +247,11 @@ IMPORTANT: You MUST respond with valid JSON only. No markdown, no explanations, 
         temperature: float = 0.3,
         max_tokens: int = 1024
     ) -> str:
-        """
-        Generate a response analyzing an image with Gemma 3:4B's vision capabilities
-        
-        Args:
-            prompt: The user prompt
-            image_base64: Base64 encoded image data
-            system_prompt: Optional system instructions
-            temperature: Model temperature
-            max_tokens: Maximum response length
-            
-        Returns:
-            Generated text response
-        """
+        """Process multimodal inputs securely."""
         messages = []
-        
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
-        
-        # Multimodal message with image
+            
         messages.append({
             "role": "user",
             "content": prompt,
@@ -170,7 +259,6 @@ IMPORTANT: You MUST respond with valid JSON only. No markdown, no explanations, 
         })
         
         payload = {
-            "model": self.model,
             "messages": messages,
             "stream": False,
             "options": {
@@ -179,18 +267,5 @@ IMPORTANT: You MUST respond with valid JSON only. No markdown, no explanations, 
             }
         }
         
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(
-                    f"{self.base_url}/api/chat",
-                    json=payload
-                )
-                response.raise_for_status()
-                data = response.json()
-                return data.get("message", {}).get("content", "")
-        except httpx.TimeoutException:
-            raise Exception("Ollama multimodal request timed out.")
-        except httpx.HTTPStatusError as e:
-            raise Exception(f"Ollama API error: {e.response.status_code}")
-        except Exception as e:
-            raise Exception(f"Failed multimodal request: {str(e)}")
+        data = await self._execute_with_retry(payload)
+        return data.get("message", {}).get("content", "")

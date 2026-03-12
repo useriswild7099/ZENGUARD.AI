@@ -23,20 +23,28 @@ logging.getLogger("uvicorn.access").disabled = True
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan - check Ollama model availability"""
-    # Startup: Check Ollama connection
+    """Application lifespan - initialize and cleanup shared resources."""
     from services.ollama_client import OllamaClient
+    from services.knowledge_base import kb
+    
+    # Startup
+    client = OllamaClient.get_instance()
     try:
-        client = OllamaClient()
-        is_ready = await client.health_check()
-        if is_ready:
-            print(f"✓ Ollama connected - Model: {client.model}")
+        await client.startup()
+        if client.resolved_model:
+            print(f"  Ollama connected - Model: {client.resolved_model}")
         else:
-            print(f"⚠ Ollama not available. Please start Ollama with 'ollama run {client.model}'")
+            print(f"  Ollama not available. Please start Ollama with 'ollama run {client.base_model_name}'")
     except Exception as e:
-        print(f"❌ Failed to connect to Ollama: {str(e)}")
+        print(f"  Failed to connect to Ollama: {str(e)}")
+    
+    # Load knowledge base
+    kb.load_data()
+    
     yield
-    # Shutdown: Cleanup
+    
+    # Shutdown: Close persistent HTTP connections
+    await client.shutdown()
     print("ZenGuard AI shutting down...")
 
 
@@ -45,7 +53,6 @@ app = FastAPI(
     description="Privacy-first mental health sentiment monitoring API",
     version="1.0.0",
     lifespan=lifespan,
-    # Disable docs in production for privacy
     docs_url="/docs" if settings.DEBUG else None,
     redoc_url=None,
 )
@@ -68,13 +75,14 @@ app.include_router(translate.router, prefix="/api", tags=["Multilingual Support"
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
+    """Health check endpoint — uses shared client."""
     from services.ollama_client import OllamaClient
-    client = OllamaClient()
+    client = OllamaClient.get_instance()
     ollama_ready = await client.health_check()
     return {
         "status": "healthy",
         "ollama": "connected" if ollama_ready else "disconnected",
+        "model": client.resolved_model or "none",
         "privacy": "enforced",
         "storage": "none"
     }

@@ -123,7 +123,7 @@ class NLPEngine:
     """
     
     def __init__(self):
-        self.client = OllamaClient()
+        self.client = OllamaClient.get_instance()
         self._repetition_threshold = 3
         # PRIVACY: Session context storage DISABLED - no data retention
         # self._session_contexts: Dict[str, List[str]] = {}  # REMOVED

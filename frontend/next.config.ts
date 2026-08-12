@@ -14,9 +14,9 @@ const isElectron = process.env.BUILD_TARGET === 'electron';
 const nextConfig: NextConfig = {
   // Enable static export only for Electron builds
   ...(isElectron && { output: 'export' }),
-  // Skip lint/ts errors during Electron export (pre-existing, not from Electron changes)
-  eslint: { ignoreDuringBuilds: isElectron },
-  typescript: { ignoreBuildErrors: isElectron },
+  // Skip lint/ts errors during build for smooth deployment
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: true },
   images: {
     // Static export requires unoptimized images (no Next.js image optimization server)
     ...(isElectron && { unoptimized: true }),

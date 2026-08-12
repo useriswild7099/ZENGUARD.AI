@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useLayoutEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { sentimentClient } from '@/lib/api';
 import dynamic from 'next/dynamic';
@@ -17,7 +17,6 @@ const HelpHub = dynamic(() => import('@/components/HelpHub'), {
 });
 const CopingNavigator = dynamic(() => import('@/components/CopingNavigator'));
 const FeatureShowcase = dynamic(() => import('@/components/FeatureShowcase'));
-const MoodDoodle = dynamic(() => import('@/components/MoodDoodle'));
 const BreathingExercise = dynamic(() => import('@/components/BreathingExercise'));
 const GroundingExercise = dynamic(() => import('@/components/GroundingExercise'));
 const WellnessPillars = dynamic(() => import('@/components/WellnessPillars'));
@@ -39,6 +38,7 @@ import {
 import { JournalEntry } from '@/types/journal';
 import { KnowledgeArticle } from '@/lib/knowledge';
 import { journalStorage, generateInsights } from '@/lib/storage';
+import { QuickMoodCheck } from '@/components/QuickMoodCheck';
 import { NewEntryFlow } from '@/components/journal/NewEntryFlow';
 import { TimelineView } from '@/components/journal/TimelineView';
 import { InsightsDashboard } from '@/components/journal/InsightsDashboard';
@@ -84,7 +84,7 @@ StaticBackground.displayName = 'StaticBackground';
 
 export default function Home() {
   const [apiConnected, setApiConnected] = useState(false);
-  const [activeView, setActiveView] = useState<'landing' | 'journal' | 'chat' | 'knowledge' | 'help' | 'doodle' | 'breathing' | 'grounding'>('landing');
+  const [activeView, setActiveView] = useState<'landing' | 'journal' | 'chat' | 'knowledge' | 'help' | 'breathing' | 'grounding'>('landing');
   const [showCopingNavigator, setShowCopingNavigator] = useState(false);
   const [routedArticle, setRoutedArticle] = useState<KnowledgeArticle | null>(null);
 
@@ -95,6 +95,51 @@ export default function Home() {
   const [globalLanguage, setGlobalLanguage] = useState('English');
   const [isMuted, setIsMuted] = useState(true);
   const [theme, setTheme] = useState<'nature' | 'light' | 'dark'>('nature');
+
+  // --- Browser History Integration for Back/Forward Navigation ---
+  const isPopstateNav = useRef(false);
+
+  // Navigate to a view and push it onto browser history
+  const navigateTo = useCallback((view: typeof activeView) => {
+    if (view === activeView && !isPopstateNav.current) return;
+    setActiveView(view);
+    if (!isPopstateNav.current) {
+      window.history.pushState({ view }, '', `#${view}`);
+    }
+  }, [activeView]);
+
+  // Go back using browser history (for onBack callbacks)
+  const goBack = useCallback(() => {
+    window.history.back();
+  }, []);
+
+  // Set initial history state on mount & listen for popstate (back/forward)
+  useEffect(() => {
+    // Determine initial view from URL hash
+    const hash = window.location.hash.replace('#', '') as typeof activeView;
+    const validViews = ['landing', 'journal', 'chat', 'knowledge', 'help', 'breathing', 'grounding'];
+    const initialView = validViews.includes(hash) ? hash : 'landing';
+
+    // Replace the current history entry with the initial state
+    window.history.replaceState({ view: initialView }, '', `#${initialView}`);
+    if (initialView !== 'landing') {
+      setActiveView(initialView);
+    }
+
+    const handlePopState = (event: PopStateEvent) => {
+      const view = event.state?.view || 'landing';
+      isPopstateNav.current = true;
+      setActiveView(view);
+      setRoutedArticle(null);
+      setIsCreatingEntry(false);
+      // Reset the flag after React processes the state update
+      requestAnimationFrame(() => { isPopstateNav.current = false; });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+  // --- End Browser History Integration ---
 
   useEffect(() => {
     sentimentClient.healthCheck().then(setApiConnected);
@@ -211,19 +256,28 @@ export default function Home() {
                   A quiet space for <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 animate-gradient-x">your thoughts</span>
                 </h1>
-                <p className="text-lg md:text-xl mb-12 max-w-xl mx-auto leading-relaxed drop-shadow-md font-light animate-fade-up stagger-3 dark:text-zinc-100 text-zinc-500">
+                <p className="text-lg md:text-xl mb-6 max-w-xl mx-auto leading-relaxed drop-shadow-md font-light animate-fade-up stagger-3 dark:text-zinc-100 text-zinc-500">
                   Express how you&apos;re feeling. Get gentle insights. 
                   <span className={`block mt-2 font-medium dark:text-zinc-300 text-zinc-600`}>Everything stays with you — nothing is stored.</span>
                 </p>
+
+                {/* Privacy & Feature Badges */}
+                <div className="flex flex-wrap justify-center gap-2 mb-10 animate-fade-up stagger-3">
+                  {['100% Private', 'Local AI Engine', 'Zero Server Logs', 'Offline Ready'].map((badge, idx) => (
+                    <span key={idx} className="px-3 py-1 rounded-full text-xs font-mono font-medium dark:bg-white/10 dark:text-white/80 bg-zinc-100 text-zinc-700 border dark:border-white/10 border-zinc-300">
+                      ✓ {badge}
+                    </span>
+                  ))}
+                </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full mt-16 animate-fade-up stagger-4 max-w-5xl mx-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full mt-6 animate-fade-up stagger-4 max-w-5xl mx-auto">
                 {[
                   { label: "Start\nJournaling", view: 'journal', icon: PenLine, color: 'white' },
-                  { label: "Talk to\nAI Friend", view: 'chat', icon: MessageCircle, color: 'purple' },
+                  { label: "Therapy\nSession", view: 'chat', icon: MessageCircle, color: 'purple' },
                   { label: "MindSpace\nLibrary", view: 'knowledge', icon: GraduationCap, color: 'blue' },
                   { label: "Professional\nHelp Hub", view: 'help', icon: LifeBuoy, color: 'red' }
                 ].map((btn, i) => (
-                  <button key={i} onClick={() => setActiveView(btn.view as any)} className={`glass-pill-button group p-6 flex flex-col items-center justify-center gap-3 min-h-[140px] text-center dark:bg-transparent dark:border-white/10 bg-zinc-50 hover:bg-zinc-100 border-zinc-200 shadow-sm`}>
+                  <button key={i} onClick={() => navigateTo(btn.view as any)} className={`glass-pill-button group p-6 flex flex-col items-center justify-center gap-3 min-h-[140px] text-center dark:bg-transparent dark:border-white/10 bg-zinc-50 hover:bg-zinc-100 border-zinc-200 shadow-sm`}>
                     <div className={`p-3 rounded-full border transition-all duration-500 dark:bg-white/5 dark:border-white/10 bg-zinc-200/50 border-zinc-300 group-hover:scale-110 group-hover:rotate-6`}>
                       <btn.icon className={`w-6 h-6 ${btn.color === 'purple' ? 'text-purple-500' : btn.color === 'blue' ? 'text-blue-500' : btn.color === 'red' ? 'text-red-500' : 'dark:text-white text-zinc-700'}`} />
                     </div>
@@ -231,13 +285,16 @@ export default function Home() {
                   </button>
                 ))}
               </div>
+
+              {/* 1-Tap Quick Mood Check-In Widget */}
+              <QuickMoodCheck onNavigate={(view) => navigateTo(view)} />
             </div>
 
             <FeatureShowcase />
-            <WellnessPillars onNavigate={(view) => setActiveView(view)} />
-            <MethodologySection onNavigate={(view) => setActiveView(view)} />
+            <WellnessPillars onNavigate={(view) => navigateTo(view)} />
+            <MethodologySection onNavigate={(view) => navigateTo(view)} />
             <TechnicalPrivacySection />
-            <SafetySection onNavigate={(view) => setActiveView(view)} />
+            <SafetySection onNavigate={(view) => navigateTo(view)} />
             <div className="mt-20 flex flex-wrap justify-center gap-8 md:gap-12 animate-fade-up stagger-8 pb-20">
               {[
                 { icon: WifiOff, label: "Fully Offline", color: "text-green-400" },
@@ -267,7 +324,7 @@ export default function Home() {
       {activeView === 'chat' && (
         <div className="min-h-screen relative flex flex-col items-center justify-center p-4 md:p-8">
           <div className="w-full max-w-2xl z-10">
-            <ChatInterface onBack={() => setActiveView('landing')} />
+            <ChatInterface onBack={goBack} />
           </div>
         </div>
       )}
@@ -275,8 +332,8 @@ export default function Home() {
       {activeView === 'knowledge' && (
         <div className="min-h-screen relative flex flex-col items-center p-4 md:p-12 overflow-x-hidden">
           <KnowledgeHub 
-            onBack={() => { setActiveView('landing'); setRoutedArticle(null); }} 
-            onNavigateToHelp={() => { setActiveView('help'); setRoutedArticle(null); }}
+            onBack={() => { goBack(); setRoutedArticle(null); }} 
+            onNavigateToHelp={() => { navigateTo('help'); setRoutedArticle(null); }}
             initialArticle={routedArticle}
             sessionLanguage={globalLanguage}
             theme={theme}
@@ -286,7 +343,7 @@ export default function Home() {
 
       {activeView === 'help' && (
         <div className="min-h-screen relative flex flex-col items-center p-4 md:p-12 overflow-x-hidden">
-          <HelpHub onBack={() => setActiveView('landing')} />
+          <HelpHub onBack={goBack} />
         </div>
       )}
 
@@ -294,7 +351,7 @@ export default function Home() {
         <div className="min-h-screen relative flex items-start justify-center p-4 py-8">
           <div className="relative z-10 w-full max-w-4xl">
             <button
-              onClick={() => { setIsCreatingEntry(false); setActiveView('landing'); }}
+              onClick={() => { setIsCreatingEntry(false); goBack(); }}
               className="flex items-center gap-2 text-white/60 hover:text-white transition-colors mb-8"
             >
               <span>←</span><span>Home</span>
@@ -304,21 +361,15 @@ export default function Home() {
         </div>
       )}
 
-      {activeView === 'doodle' && !isCreatingEntry && (
-        <div className="min-h-screen relative flex flex-col items-center justify-center p-4 md:p-12 overflow-x-hidden">
-          <MoodDoodle sessionId="session_123" onBack={() => setActiveView('landing')} />
-        </div>
-      )}
-
       {activeView === 'breathing' && !isCreatingEntry && (
         <div className="min-h-screen relative flex flex-col items-center justify-center p-4 md:p-12 overflow-x-hidden">
-          <BreathingExercise onBack={() => setActiveView('landing')} />
+          <BreathingExercise onBack={goBack} />
         </div>
       )}
 
       {activeView === 'grounding' && !isCreatingEntry && (
         <div className="min-h-screen relative flex flex-col items-center justify-center p-4 md:p-12 overflow-x-hidden">
-          <GroundingExercise onBack={() => setActiveView('landing')} />
+          <GroundingExercise onBack={goBack} />
         </div>
       )}
 
@@ -332,13 +383,13 @@ export default function Home() {
             <div className="container max-w-7xl mx-auto px-4 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <button onClick={() => setActiveView('landing')} className={`flex items-center gap-2 transition-colors ${isLight ? 'text-zinc-500 hover:text-zinc-900' : 'text-white/50 hover:text-white'}`}><span>←</span></button>
+                  <button onClick={goBack} className={`flex items-center gap-2 transition-colors ${isLight ? 'text-zinc-500 hover:text-zinc-900' : 'text-white/50 hover:text-white'}`}><span>←</span></button>
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shadow-xl ${isLight ? 'bg-zinc-100 border-zinc-200' : 'bg-white/10 border-white/20'}`}><Shield className={`h-6 w-6 ${isLight ? 'text-zinc-900' : 'text-white'}`} /></div>
                   <div><h1 className={`text-2xl font-bold ${isLight ? 'text-zinc-900' : 'text-white'}`}>ZenGuard</h1><p className={`text-xs ${isLight ? 'text-zinc-500' : 'text-white/40'}`}>Your Reflective Space</p></div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <Button variant="ghost" onClick={() => setActiveView('knowledge')} className={`gap-2 hidden md:flex ${isLight ? 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100' : 'text-white/60 hover:text-white hover:bg-white/5'}`}><GraduationCap className="h-5 w-5" />Library</Button>
-                  <Button variant="ghost" onClick={() => setActiveView('help')} className={`gap-2 hidden md:flex ${isLight ? 'text-red-600 hover:text-red-700 hover:bg-red-50' : 'text-red-400/60 hover:text-red-400 hover:bg-red-400/5'}`}><LifeBuoy className="h-5 w-5" />Help</Button>
+                  <Button variant="ghost" onClick={() => navigateTo('knowledge')} className={`gap-2 hidden md:flex ${isLight ? 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100' : 'text-white/60 hover:text-white hover:bg-white/5'}`}><GraduationCap className="h-5 w-5" />Library</Button>
+                  <Button variant="ghost" onClick={() => navigateTo('help')} className={`gap-2 hidden md:flex ${isLight ? 'text-red-600 hover:text-red-700 hover:bg-red-50' : 'text-red-400/60 hover:text-red-400 hover:bg-red-400/5'}`}><LifeBuoy className="h-5 w-5" />Help</Button>
                   <Button onClick={() => setIsCreatingEntry(true)} size="lg" className={`gap-2 border-0 shadow-xl ${isLight ? 'bg-zinc-900 text-white hover:bg-zinc-800' : 'bg-white text-black hover:bg-white/90'}`}><Plus className="h-5 w-5" />New Entry</Button>
                 </div>
               </div>
@@ -407,14 +458,14 @@ export default function Home() {
       <Toaster />
       <SiaAssistant 
         activeView={activeView}
-        onNavigate={(view) => setActiveView(view)}
+        onNavigate={(view) => navigateTo(view)}
         onNavigateTab={(tab) => {
-          setActiveView('journal');
+          navigateTo('journal');
           setActiveTab(tab as any);
         }}
         onOpenArticle={(article) => {
           setRoutedArticle(article);
-          setActiveView('knowledge');
+          navigateTo('knowledge');
         }}
         language={globalLanguage}
         theme={theme}

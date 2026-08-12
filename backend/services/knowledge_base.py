@@ -10,7 +10,7 @@ class KnowledgeBase:
     def load_data(self):
         """Loads and pre-indexes the counseling handbook text map."""
         if not os.path.exists(self.data_path):
-            print(f"⚠️ Knowledge Base not found at: {self.data_path}")
+            print(f"[WARN] Knowledge Base not found at: {self.data_path}")
             return False
             
         try:
@@ -34,10 +34,10 @@ class KnowledgeBase:
                 })
                 
             self.is_loaded = True
-            print(f"✅ Knowledge Base Loaded: {len(self.documents)} pages indexed.")
+            print(f"[OK] Knowledge Base Loaded: {len(self.documents)} pages indexed.")
             return True
         except Exception as e:
-            print(f"❌ Error loading Knowledge Base: {e}")
+            print(f"[ERR] Error loading Knowledge Base: {e}")
             return False
 
     def search(self, query: str, limit: int = 3):

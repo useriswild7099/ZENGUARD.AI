@@ -24,7 +24,7 @@ export default function TechnicalPrivacySection() {
             </h2>
             
             <p className="text-lg text-zinc-400 leading-relaxed">
-              Unlike traditional AI that ships your most private thoughts to remote servers, ZenGuard lives entirely on your device. We use Gemma 3-4B optimized for local execution, ensuring your mental health data never leaves your hardware.
+              Unlike traditional AI that ships your most private thoughts to remote servers, ZenGuard lives entirely on your device. We use TherapyLlama-8B, a therapy-fine-tuned model optimized for local execution, ensuring your mental health data never leaves your hardware.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4">

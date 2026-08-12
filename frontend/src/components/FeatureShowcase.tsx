@@ -1,60 +1,86 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useState } from 'react';
 import Image from 'next/image';
 import { 
   Users, Sparkles, Shield, Brain, Zap, 
-  MessageCircle, Heart, Star, BookOpen, Coffee,
-  Wind, Flame, Cloud
+  Heart, BookOpen, Wind, Flame, Cloud,
+  Search, Lock, CheckCircle2, Cpu, HardDrive, WifiOff
 } from 'lucide-react';
 
 const PERSONALITIES = [
-  { name: "Socrates", emoji: "🏛️", desc: "Deep philosophical questioning" },
-  { name: "Steve Jobs", emoji: "📱", desc: "Design-focused minimalist" },
-  { name: "Mother", emoji: "👩", desc: "Warm comfort & nurturing" },
-  { name: "Rumi", emoji: "📜", desc: "Poetic soul connections" },
-  { name: "David Goggins", emoji: "💪", desc: "Therapeutic toughness" },
-  { name: "The Universe", emoji: "🌌", desc: "Cosmic perspective" },
-  { name: "Best Friend", emoji: "🫂", desc: "Unconditional support" },
-  { name: "Academic Coach", emoji: "📚", desc: "Patient guidance" },
-  { name: "Marcus Aurelius", emoji: "👑", desc: "Stoic resilience" },
-  { name: "Motivational Coach", emoji: "🚀", desc: "Inspiring action" },
-  { name: "Sherlock", emoji: "🎻", desc: "Analytical breakdown" },
-  { name: "Mindfulness Guide", emoji: "🌿", desc: "Grounding in reality" },
+  { name: "Socrates", category: "Philosophy", emoji: "🏛️", desc: "Deep socratic questioning & clarity" },
+  { name: "Steve Jobs", category: "Mindset", emoji: "📱", desc: "Design-focused minimalist wisdom" },
+  { name: "Mother", category: "Support", emoji: "👩", desc: "Warm comfort & unconditional care" },
+  { name: "Rumi", category: "Poetic", emoji: "📜", desc: "Soulful perspective & emotional peace" },
+  { name: "David Goggins", category: "Mindset", emoji: "💪", desc: "Therapeutic resilience & strength" },
+  { name: "The Universe", category: "Poetic", emoji: "🌌", desc: "Cosmic expansive mindfulness" },
+  { name: "Best Friend", category: "Support", emoji: "🫂", desc: "Empathetic companion who listens" },
+  { name: "Academic Coach", category: "Mindset", emoji: "📚", desc: "Structured patient problem solving" },
+  { name: "Marcus Aurelius", category: "Philosophy", emoji: "👑", desc: "Stoic inner fortitude & calmness" },
+  { name: "Motivational Coach", category: "Mindset", emoji: "🚀", desc: "Inspiring action & self-belief" },
+  { name: "Sherlock", category: "Mindset", emoji: "🎻", desc: "Analytical objective breakdown" },
+  { name: "Mindfulness Guide", category: "Support", emoji: "🌿", desc: "Breathing & reality grounding" },
 ];
 
 export default function FeatureShowcase() {
   const [activeTab, setActiveTab] = useState<'personalities' | 'analysis' | 'release' | 'privacy'>('personalities');
+  const [personaCategory, setPersonaCategory] = useState<string>('All');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Interactive Void Mode simulator state
+  const [releaseInput, setReleaseInput] = useState<string>('');
+  const [releasedWords, setReleasedWords] = useState<string[]>([]);
+  const [isDissolving, setIsDissolving] = useState<boolean>(false);
+
+  const handleSimulateRelease = () => {
+    if (!releaseInput.trim()) return;
+    setIsDissolving(true);
+    setTimeout(() => {
+      setReleasedWords((prev) => [...prev, releaseInput]);
+      setReleaseInput('');
+      setIsDissolving(false);
+    }, 1200);
+  };
+
+  const filteredPersonas = PERSONALITIES.filter(p => {
+    const matchesCat = personaCategory === 'All' || p.category === personaCategory;
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          p.desc.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCat && matchesSearch;
+  });
 
   return (
-    <section className="py-24 relative z-10 w-full max-w-7xl mx-auto px-6">
+    <section className="py-20 relative z-10 w-full max-w-7xl mx-auto px-6">
       
       {/* Section Header */}
-      <div className="text-center mb-16 space-y-4">
+      <div className="text-center mb-14 space-y-4">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-bold uppercase tracking-wider">
+          <Sparkles className="w-3.5 h-3.5" /> Comprehensive Wellness Ecosystem
+        </div>
         <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>
-          Explore the Ecosystem
+          Designed for Total Mental Peace
         </h2>
-        <p className="text-zinc-400 max-w-2xl mx-auto text-lg">
-          More than just a journal. A complete mental wellness system powered by local AI.
+        <p className="text-zinc-400 max-w-2xl mx-auto text-base md:text-lg">
+          Explore local AI capabilities, cathartic release tools, and complete zero-cloud data privacy.
         </p>
       </div>
 
       {/* Interactive Feature Tabs */}
-      <div className="flex flex-wrap justify-center gap-4 mb-12">
+      <div className="flex flex-wrap justify-center gap-3 mb-12">
         {[
-          { id: 'personalities', label: '57+ Personalities', icon: Users },
-          { id: 'release', label: 'Release & Reflect', icon: Wind },
-          { id: 'analysis', label: 'Deep Analysis', icon: Brain },
-          { id: 'privacy', label: 'Privacy First', icon: Shield },
+          { id: 'personalities', label: '57+ AI Personas', icon: Users },
+          { id: 'release', label: 'Void Mode Release', icon: Wind },
+          { id: 'analysis', label: 'Local Cognitive Insights', icon: Brain },
+          { id: 'privacy', label: 'Zero-Cloud Architecture', icon: Shield },
         ].map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-all ${
+            className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-semibold transition-all duration-300 ${
               activeTab === tab.id
-                ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]'
-                : 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white'
+                ? 'bg-white text-zinc-950 shadow-[0_0_25px_rgba(255,255,255,0.3)] scale-[1.03]'
+                : 'bg-white/5 text-zinc-400 border border-white/10 hover:bg-white/10 hover:text-white'
             }`}
           >
             <tab.icon className="w-4 h-4" />
@@ -63,14 +89,45 @@ export default function FeatureShowcase() {
         ))}
       </div>
 
-      {/* FEATURE 1: PERSONALITIES MARQUEE */}
+      {/* TAB 1: 57+ AI PERSONAS */}
       {activeTab === 'personalities' && (
-        <div className="animate-fade-in">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-4">
-            {PERSONALITIES.map((persona, i) => (
+        <div className="animate-fade-in space-y-6">
+          {/* Persona Filter Controls */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/5 p-4 rounded-2xl border border-white/10 max-w-5xl mx-auto">
+            <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0 scrollbar-none">
+              {['All', 'Philosophy', 'Support', 'Mindset', 'Poetic'].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setPersonaCategory(cat)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-colors whitespace-nowrap ${
+                    personaCategory === cat 
+                      ? 'bg-purple-500 text-white font-bold' 
+                      : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            <div className="relative w-full sm:w-64">
+              <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search personas..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-4 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500/50"
+              />
+            </div>
+          </div>
+
+          {/* Grid of Personas */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
+            {filteredPersonas.map((persona) => (
               <div 
                 key={persona.name}
-                className="glass-card p-4 hover:bg-white/10 transition-colors flex items-center gap-4 group"
+                className="glass-card p-4 rounded-2xl border border-white/10 hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300 flex items-center gap-4 group cursor-default"
               >
                 <div className="relative w-12 h-12 flex-shrink-0">
                   <Image
@@ -81,123 +138,144 @@ export default function FeatureShowcase() {
                     sizes="48px"
                     className="rounded-full object-cover border border-white/10 group-hover:scale-110 transition-transform"
                     onError={(e) => {
-                      // Fallback to emoji if image fails (handled by hiding image and showing emoji span)
                       (e.target as HTMLImageElement).style.display = 'none';
                       (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
                     }}
                   />
-                  <span className="hidden text-3xl absolute inset-0 flex items-center justify-center">{persona.emoji}</span>
+                  <span className="hidden text-2xl absolute inset-0 flex items-center justify-center bg-white/5 rounded-full">{persona.emoji}</span>
                 </div>
-                <div>
-                  <h3 className="font-bold text-white text-base leading-tight">{persona.name}</h3>
-                  <p className="text-xs text-zinc-400 mt-1">{persona.desc}</p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-white text-sm truncate">{persona.name}</h3>
+                    <span className="text-[9px] uppercase px-2 py-0.5 rounded-full bg-white/5 text-purple-300 font-mono">
+                      {persona.category}
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-1 line-clamp-2 leading-relaxed">{persona.desc}</p>
                 </div>
               </div>
             ))}
           </div>
-          <div className="text-center mt-8 text-zinc-500 italic">
-            + 45 more personas found inside chat mode
+          
+          <div className="text-center text-xs text-zinc-500 pt-2">
+            + 45 more custom empathy personas available inside Sia AI Chat
           </div>
         </div>
       )}
 
-      {/* FEATURE: RELEASE LOOPS */}
+      {/* TAB 2: INTERACTIVE VOID MODE SIMULATOR */}
       {activeTab === 'release' && (
-        <div className="animate-fade-in glass-card p-8 md:p-12 max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div className="order-2 md:order-1 relative h-80 glass-card overflow-hidden group flex items-center justify-center">
-               {/* Visual representation of release loops */}
-               <div className="absolute inset-0 bg-gradient-to-br from-black via-zinc-900 to-black"></div>
-               <div className="grid grid-cols-2 gap-4 p-4 opacity-50 group-hover:opacity-100 transition-opacity duration-700">
-                  <div className="flex flex-col items-center gap-2 animate-float-slow">
-                     <Wind className="text-yellow-400 w-8 h-8" />
-                     <span className="text-xs text-zinc-400">Anxious</span>
+        <div className="animate-fade-in glass-card p-8 md:p-12 max-w-4xl mx-auto rounded-3xl border border-white/15">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+            <div className="space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                  <Wind className="w-5 h-5" />
+                </div>
+                <h3 className="text-2xl font-bold text-white">Interactive Void Release</h3>
+              </div>
+              <p className="text-zinc-300 text-sm leading-relaxed">
+                Type any stress, frustration, or heavy thought below and watch it instantly dissolve into nothingness. No record, no history.
+              </p>
+
+              {/* Live Interactive Text Dissolve Input */}
+              <div className="space-y-3 pt-2">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Type a thought (e.g. 'Stressed about deadline')..."
+                    value={releaseInput}
+                    onChange={(e) => setReleaseInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSimulateRelease()}
+                    className={`w-full bg-black/50 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-blue-400 transition-all ${
+                      isDissolving ? 'opacity-30 blur-sm scale-95 duration-1000' : ''
+                    }`}
+                  />
+                  <button
+                    onClick={handleSimulateRelease}
+                    disabled={!releaseInput.trim() || isDissolving}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-blue-500 hover:bg-blue-600 disabled:opacity-40 text-xs font-bold text-white rounded-lg transition-all"
+                  >
+                    {isDissolving ? 'Dissolving...' : 'Release'}
+                  </button>
+                </div>
+
+                {releasedWords.length > 0 && (
+                  <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-xs text-emerald-400 flex items-center justify-between">
+                    <span>✨ Released {releasedWords.length} heavy thought{releasedWords.length > 1 ? 's' : ''} into the void!</span>
+                    <button onClick={() => setReleasedWords([])} className="text-zinc-400 hover:text-white underline">Clear</button>
                   </div>
-                  <div className="flex flex-col items-center gap-2 animate-float-delayed">
-                     <Flame className="text-red-400 w-8 h-8" />
-                     <span className="text-xs text-zinc-400">Angry</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-2 animate-float-reverse">
-                     <Cloud className="text-blue-400 w-8 h-8" />
-                     <span className="text-xs text-zinc-400">Sad</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-2 animate-float-delayed-reverse">
-                     <Sparkles className="text-green-400 w-8 h-8" />
-                     <span className="text-xs text-zinc-400">Hopeful</span>
-                  </div>
-               </div>
-               <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-32 h-32 rounded-full border border-white/20 flex items-center justify-center backdrop-blur-sm bg-white/5">
-                    <span className="text-white font-light text-lg tracking-widest uppercase">Release</span>
-                  </div>
-               </div>
+                )}
+              </div>
             </div>
 
-            <div className="space-y-6 order-1 md:order-2">
-              <div className="flex items-center gap-3 mb-2">
-                <Wind className="text-blue-300" />
-                <h3 className="text-2xl font-bold text-white">Let It Go, For Real.</h3>
+            {/* Visual Release Preview Box */}
+            <div className="relative h-64 glass-card rounded-2xl border border-white/10 overflow-hidden flex items-center justify-center p-6 text-center">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-black to-blue-900/20"></div>
+              
+              <div className="relative z-10 space-y-3">
+                <div className="w-16 h-16 mx-auto rounded-full bg-blue-500/10 border border-blue-400/30 flex items-center justify-center text-blue-400 animate-pulse">
+                  <Wind className="w-8 h-8" />
+                </div>
+                <h4 className="text-white font-bold text-base">Cathartic Metaphors</h4>
+                <p className="text-xs text-zinc-400 max-w-xs mx-auto">
+                  Choose to burn, shatter, dissolve, or float your thoughts into space with audio feedback.
+                </p>
               </div>
-              <p className="text-zinc-300 leading-relaxed">
-                Enter the Void Mode to release intense emotions safely.
-              </p>
-              <ul className="space-y-4">
-                {[
-                  { title: "30+ Mood Loops", desc: "Tailored experiences for Anxiety, Anger, Sadness, and more." },
-                  { title: "Visual Release", desc: "Watch your words shatter, burn, fade, or dissolve." },
-                  { title: "AI Reflection", desc: "Receive instant, validating insight for your specific state." },
-                  { title: "Cool-Downs", desc: "Guided breathing and grounding to reset your nervous system." }
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3 text-zinc-400">
-                    <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0"></div>
-                    <div>
-                      <strong className="text-zinc-200 block">{item.title}</strong>
-                      <span className="text-sm">{item.desc}</span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
             </div>
           </div>
         </div>
       )}
 
-      {/* FEATURE 2: ANALYSIS VISUALIZATION */}
+      {/* TAB 3: LOCAL COGNITIVE INSIGHTS */}
       {activeTab === 'analysis' && (
-        <div className="animate-fade-in glass-card p-8 md:p-12 max-w-4xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 mb-2">
-                <Sparkles className="text-purple-400" />
-                <h3 className="text-2xl font-bold text-white">From Confusion to Clarity</h3>
+        <div className="animate-fade-in glass-card p-8 md:p-12 max-w-4xl mx-auto rounded-3xl border border-white/15">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+            <div className="space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                  <Brain className="w-5 h-5" />
+                </div>
+                <h3 className="text-2xl font-bold text-white">Private Local Intelligence</h3>
               </div>
-              <p className="text-zinc-300 leading-relaxed">
-                Our local AI analyzes your journal entries for emotional tone, cognitive distortions, and hidden patterns.
+              <p className="text-zinc-300 text-sm leading-relaxed">
+                Powered by local Ollama AI models, ZenGuard detects cognitive distortions, tracks mood trends, and recommends CBT reframing.
               </p>
-              <ul className="space-y-3">
+              <ul className="space-y-2.5 text-xs text-zinc-300">
                 {[
-                  "Mood Seed Metaphor (Plant Growth)",
-                  "Emotional Masking Detection",
-                  "Risk Scoring (0-100 Wellness)",
-                  "Customized Intervention Tips"
-                ].map(item => (
-                  <li key={item} className="flex items-center gap-2 text-zinc-400">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
-                    {item}
+                  "Mood Seed Metaphor & Plant Growth tracking",
+                  "Cognitive Distortion Spotter (Catastrophizing, All-or-Nothing)",
+                  "Wellness Risk Score (0-100 score evaluation)",
+                  "Proactive Gentle Intervention suggestions"
+                ].map((item, idx) => (
+                  <li key={idx} className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                    <span>{item}</span>
                   </li>
                 ))}
               </ul>
             </div>
-            
-            {/* Visual Abstract Representation */}
-            <div className="relative h-64 glass-card flex items-center justify-center overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10"></div>
-              <div className="relative z-10 text-center">
-                <div className="w-24 h-24 mx-auto bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(74,222,128,0.3)] group-hover:scale-110 transition-transform duration-500">
-                  <span className="text-4xl">🌱</span>
+
+            {/* Visual Analytics Preview Card */}
+            <div className="glass-card p-6 rounded-2xl border border-white/10 space-y-4">
+              <div className="flex items-center justify-between text-xs border-b border-white/10 pb-3">
+                <span className="text-zinc-400 font-mono">INSIGHT ENGINE</span>
+                <span className="text-emerald-400 font-bold flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> LOCAL OLLAMA READY
+                </span>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-zinc-300">Emotional Balance</span>
+                    <span className="text-purple-300 font-bold">88%</span>
+                  </div>
+                  <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-purple-500 to-blue-400 w-[88%]"></div>
+                  </div>
                 </div>
-                <div className="mt-4 px-4 py-2 bg-white/10 rounded-full text-xs font-mono text-green-300">
-                  Status: Flourishing
+                <div className="p-3 bg-white/5 rounded-xl text-xs text-zinc-300 italic border border-white/5">
+                  "Thought pattern shows positive shift toward problem-solving after CBT reframing prompt."
                 </div>
               </div>
             </div>
@@ -205,34 +283,44 @@ export default function FeatureShowcase() {
         </div>
       )}
 
-      {/* FEATURE 3: PRIVACY */}
+      {/* TAB 4: ZERO-CLOUD ARCHITECTURE */}
       {activeTab === 'privacy' && (
-        <div className="animate-fade-in grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {[
-            {
-              title: "100% Offline Capable",
-              desc: "The AI model (Gemma 3:4B) runs directly on your machine. Unplug the internet and it still works.",
-              icon: Zap
-            },
-            {
-              title: "Zero Data Collection",
-              desc: "We don't have servers. We don't have a database. Your thoughts evaporate after the session.",
-              icon: Shield
-            },
-            {
-              title: "Ephemeral by Design",
-              desc: "Close the tab, and it's gone. Designed for true psychological safety and uninhibited expression.",
-              icon: Heart
-            }
-          ].map((card, i) => (
-            <div key={i} className="glass-card p-8 text-center hover:bg-white/10 transition-colors">
-              <div className="w-12 h-12 mx-auto bg-white/5 rounded-2xl flex items-center justify-center mb-6 text-white">
-                <card.icon className="w-6 h-6" />
+        <div className="animate-fade-in space-y-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                title: "100% Offline Capable",
+                desc: "The local AI engine runs directly on your machine. Turn off Wi-Fi and everything works seamlessly.",
+                icon: WifiOff,
+                badge: "No Internet Required"
+              },
+              {
+                title: "Zero Remote Data Storage",
+                desc: "We do not host databases or track user IDs. Your private journal entries stay on your device.",
+                icon: HardDrive,
+                badge: "Local Browser/Disk Only"
+              },
+              {
+                title: "On-Device Inference",
+                desc: "Every AI response is computed locally on your CPU/GPU with zero external API calls.",
+                icon: Cpu,
+                badge: "Local Ollama LLM"
+              }
+            ].map((card, i) => (
+              <div key={i} className="glass-card p-6 rounded-2xl border border-white/10 hover:bg-white/10 transition-all text-center space-y-4">
+                <div className="w-12 h-12 mx-auto bg-purple-500/10 border border-purple-500/20 rounded-2xl flex items-center justify-center text-purple-400">
+                  <card.icon className="w-6 h-6" />
+                </div>
+                <div>
+                  <span className="inline-block text-[10px] font-mono text-purple-300 bg-white/5 px-2.5 py-0.5 rounded-full border border-white/10 mb-2">
+                    {card.badge}
+                  </span>
+                  <h3 className="text-lg font-bold text-white">{card.title}</h3>
+                </div>
+                <p className="text-zinc-400 text-xs leading-relaxed">{card.desc}</p>
               </div>
-              <h3 className="text-xl font-bold text-white mb-3">{card.title}</h3>
-              <p className="text-zinc-400 text-sm leading-relaxed">{card.desc}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 

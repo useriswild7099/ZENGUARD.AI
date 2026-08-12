@@ -99,9 +99,41 @@ export function useWhisper(options: UseWhisperOptions = {}): UseWhisperReturn {
     recognition.onerror = (event: any) => {
       console.error('Speech error:', event.error);
       clearSilenceTimer();
-      if (event.error !== 'no-speech' && event.error !== 'aborted') {
-        setError(event.error);
+
+      // Don't flag no-speech or manual aborts as hard errors
+      if (event.error === 'no-speech' || event.error === 'aborted') {
+        return;
       }
+
+      // Map raw API error codes to human-readable explanations
+      let userFriendlyMessage = 'Speech recognition error';
+      switch (event.error) {
+        case 'network':
+          userFriendlyMessage = 'Network error: Web Speech API requires active internet to connect to speech services.';
+          break;
+        case 'not-allowed':
+        case 'service-not-allowed':
+          userFriendlyMessage = 'Microphone permission denied. Please allow mic access.';
+          break;
+        case 'audio-capture':
+          userFriendlyMessage = 'No microphone detected. Please connect a mic.';
+          break;
+        case 'bad-grammar':
+          userFriendlyMessage = 'Speech recognition grammar error.';
+          break;
+        case 'language-not-supported':
+          userFriendlyMessage = 'Selected language is not supported.';
+          break;
+        default:
+          userFriendlyMessage = `Speech error: ${event.error}`;
+      }
+
+      setError(userFriendlyMessage);
+
+      // Auto-clear error notification after 6 seconds
+      setTimeout(() => {
+        setError(null);
+      }, 6000);
     };
     
     recognition.onend = () => {
@@ -115,7 +147,7 @@ export function useWhisper(options: UseWhisperOptions = {}): UseWhisperReturn {
     try {
       recognition.start();
     } catch (err: any) {
-      setError(err.message || 'Failed to start');
+      setError(err.message || 'Failed to start speech recognition');
     }
   }, [startSilenceTimer, clearSilenceTimer]);
 

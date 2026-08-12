@@ -4,7 +4,9 @@ import { useState, useEffect, useRef, memo, useCallback } from 'react';
 import Image from 'next/image';
 import { chatClient, ChatMode, ChatMessage } from '@/lib/api';
 import { prepareText } from '@/lib/privacy';
+import { Phone } from 'lucide-react';
 import VoiceInput from './VoiceInput';
+import LiveCallModal from './LiveCallModal';
 
 // Memoized helper component for personality avatar
 const PersonalityAvatar = memo(({ mode, size = 48, className = '' }: { mode: ChatMode; size?: number; className?: string }) => {
@@ -28,6 +30,27 @@ const PersonalityAvatar = memo(({ mode, size = 48, className = '' }: { mode: Cha
 
 PersonalityAvatar.displayName = 'PersonalityAvatar';
 
+const getModeColorClasses = (colorName?: string) => {
+  switch (colorName) {
+    case 'blue':
+      return { bg600: 'bg-blue-600', hover500: 'hover:bg-blue-500', shadow: 'shadow-blue-500/20', bg400: 'bg-blue-400', topBar: 'from-blue-500 via-blue-400 to-blue-600' };
+    case 'emerald':
+    case 'green':
+      return { bg600: 'bg-emerald-600', hover500: 'hover:bg-emerald-500', shadow: 'shadow-emerald-500/20', bg400: 'bg-emerald-400', topBar: 'from-emerald-500 via-emerald-400 to-emerald-600' };
+    case 'amber':
+    case 'yellow':
+      return { bg600: 'bg-amber-600', hover500: 'hover:bg-amber-500', shadow: 'shadow-amber-500/20', bg400: 'bg-amber-400', topBar: 'from-amber-500 via-amber-400 to-amber-600' };
+    case 'rose':
+    case 'red':
+      return { bg600: 'bg-rose-600', hover500: 'hover:bg-rose-500', shadow: 'shadow-rose-500/20', bg400: 'bg-rose-400', topBar: 'from-rose-500 via-rose-400 to-rose-600' };
+    case 'indigo':
+      return { bg600: 'bg-indigo-600', hover500: 'hover:bg-indigo-500', shadow: 'shadow-indigo-500/20', bg400: 'bg-indigo-400', topBar: 'from-indigo-500 via-indigo-400 to-indigo-600' };
+    case 'purple':
+    default:
+      return { bg600: 'bg-purple-600', hover500: 'hover:bg-purple-500', shadow: 'shadow-purple-500/20', bg400: 'bg-purple-400', topBar: 'from-purple-500 via-purple-400 to-purple-600' };
+  }
+};
+
 
 interface ChatInterfaceProps {
   onBack: () => void;
@@ -42,6 +65,7 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingModes, setIsLoadingModes] = useState(true);
+  const [isCallActive, setIsCallActive] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -230,11 +254,13 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
   }
 
   // Chat screen
+  const colorClasses = getModeColorClasses(selectedMode.color);
+
   return (
     <div className="w-full max-w-2xl mx-auto">
       <div className="glass-card flex flex-col h-[600px] overflow-hidden relative">
         {/* Background Accent */}
-        <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-${selectedMode.color || 'purple'}-500 via-${selectedMode.color || 'purple'}-400 to-${selectedMode.color || 'purple'}-600`}></div>
+        <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${colorClasses.topBar}`}></div>
 
         {/* Chat Header */}
         <div className="relative flex items-center justify-center p-4 border-b border-white/10 bg-black/20">
@@ -255,13 +281,32 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
             <span className="font-medium dark:text-white text-zinc-900 text-sm">{selectedMode.name}</span>
           </div>
 
-          <button
-            onClick={onBack}
-            className="absolute right-4 dark:text-zinc-400 text-zinc-500 dark:hover:text-white hover:text-zinc-900 transition-colors text-sm"
-          >
-            Exit Chat
-          </button>
+          <div className="absolute right-4 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsCallActive(true)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 text-xs font-semibold transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
+              title={`Start WhatsApp-style Live Voice Call with ${selectedMode.name}`}
+            >
+              <Phone className="w-3.5 h-3.5 fill-current animate-pulse" />
+              <span>Live Call</span>
+            </button>
+            <button
+              onClick={onBack}
+              className="dark:text-zinc-400 text-zinc-500 dark:hover:text-white hover:text-zinc-900 transition-colors text-sm"
+            >
+              Exit Chat
+            </button>
+          </div>
         </div>
+
+        {/* Live Call Modal */}
+        {isCallActive && (
+          <LiveCallModal 
+            mode={selectedMode} 
+            onClose={() => setIsCallActive(false)} 
+          />
+        )}
 
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -283,7 +328,7 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
               <div
                 className={`max-w-[85%] rounded-2xl px-5 py-3 shadow-sm ${
                   msg.role === 'user'
-                    ? `bg-${selectedMode.color || 'purple'}-600 text-white rounded-br-none`
+                    ? `${colorClasses.bg600} text-white rounded-br-none`
                     : 'dark:bg-white/10 bg-zinc-100 backdrop-blur-md dark:text-zinc-100 text-zinc-800 rounded-bl-none border dark:border-white/5 border-zinc-200'
                 }`}
               >
@@ -296,9 +341,9 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
             <div className="flex justify-start">
               <div className="dark:bg-white/10 bg-zinc-100 backdrop-blur-sm rounded-2xl rounded-bl-none px-4 py-3 border dark:border-white/5 border-zinc-200">
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 bg-${selectedMode.color || 'purple'}-400 rounded-full animate-bounce`} style={{ animationDelay: '0ms' }}></div>
-                  <div className={`w-2 h-2 bg-${selectedMode.color || 'purple'}-400 rounded-full animate-bounce`} style={{ animationDelay: '150ms' }}></div>
-                  <div className={`w-2 h-2 bg-${selectedMode.color || 'purple'}-400 rounded-full animate-bounce`} style={{ animationDelay: '300ms' }}></div>
+                  <div className={`w-2 h-2 ${colorClasses.bg400} rounded-full animate-bounce`} style={{ animationDelay: '0ms' }}></div>
+                  <div className={`w-2 h-2 ${colorClasses.bg400} rounded-full animate-bounce`} style={{ animationDelay: '150ms' }}></div>
+                  <div className={`w-2 h-2 ${colorClasses.bg400} rounded-full animate-bounce`} style={{ animationDelay: '300ms' }}></div>
                 </div>
               </div>
             </div>
@@ -328,7 +373,7 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
             <button
               onClick={handleSendMessage}
               disabled={!inputText.trim() || isLoading}
-              className={`btn-zen bg-${selectedMode.color || 'purple'}-600 hover:bg-${selectedMode.color || 'purple'}-500 disabled:opacity-50 disabled:cursor-not-allowed h-11 w-11 flex items-center justify-center rounded-xl transition-all shadow-lg shadow-${selectedMode.color || 'purple'}-500/20`}
+              className={`btn-zen ${colorClasses.bg600} ${colorClasses.hover500} disabled:opacity-50 disabled:cursor-not-allowed h-11 w-11 flex items-center justify-center rounded-xl transition-all shadow-lg ${colorClasses.shadow}`}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>

@@ -219,6 +219,10 @@ export interface ChatResponse {
   response: string;
   mode: string;
   data_stored: boolean;
+  /** True when response came from cache or pre-written fallback (AI offline) */
+  fallback_used?: boolean;
+  /** 1=primary model, 2=fallback model, 3=cache, 4=pre-written */
+  fallback_tier?: number | null;
 }
 
 class ChatClient {

@@ -1,6 +1,6 @@
 """
 Silent Sentinel NLP Engine
-Core sentiment and emotion analysis powered by Gemma 3:4B
+Core sentiment and emotion analysis powered by TherapyLlama-8B
 
 ENHANCED FEATURES:
 1. Chain-of-Thought reasoning using <think> tags
@@ -245,7 +245,7 @@ Use <think> tags to reason through any discrepancies you notice."""
     
     async def analyze_visual_mood(self, image_base64: str) -> Dict:
         """
-        Analyze a mood doodle/sketch using Gemma's multimodal capabilities
+        Analyze a mood doodle/sketch using multimodal AI capabilities
         
         Args:
             image_base64: Base64 encoded image data

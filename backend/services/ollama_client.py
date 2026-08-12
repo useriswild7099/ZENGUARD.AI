@@ -1,22 +1,61 @@
 """
-Ollama Client - Interface to local Gemma 3 model
+Ollama Client - Interface to local TherapyLlama-8B model
 Production-grade with persistent connection pooling, automatic retries,
-and dynamic model resolution.
+dynamic model resolution, and tiered fallback architecture.
+
+FALLBACK HIERARCHY:
+- Tier 1: Primary model (configured in settings, e.g., gemma3)
+- Tier 2: Any available Ollama model (auto-detected fallback)
+- If both fail: raises OllamaUnavailableError for upper layers to handle
 """
 
 import httpx
 import json
 import asyncio
+import socket
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from config import settings
 
 logger = logging.getLogger(__name__)
 
 
+# ─── Custom Exception ─────────────────────────────────────────────────────────
+
+class OllamaUnavailableError(Exception):
+    """
+    Raised when Ollama is completely unreachable or no models are available.
+    
+    Upper layers (routers) catch this to trigger Tier 3 (cache) and 
+    Tier 4 (pre-written responses) fallbacks.
+    """
+    pass
+
+
+# ─── Model Priority for Fallback ──────────────────────────────────────────────
+
+# When the primary model is unavailable, prefer these models in order.
+# Smaller models are prioritized for reliability on resource-constrained systems.
+FALLBACK_MODEL_PRIORITY = [
+    "therapyllama",   # Primary: therapy-fine-tuned model
+    "gemma3",         # Same family, different tag
+    "gemma2",         # Older but reliable
+    "gemma",          # Original
+    "llama3.2",       # Small and fast
+    "llama3.1",       # Decent fallback
+    "llama3",         # Widely available
+    "phi3",           # Microsoft's small model
+    "phi",            # Even smaller
+    "mistral",        # Good quality
+    "tinyllama",      # Tiny but functional
+    "qwen2",          # Alternative
+]
+
+
 class OllamaClient:
-    """Robust Async client for Ollama API with persistent connection pooling."""
+    """Robust Async client for Ollama API with persistent connection pooling
+    and automatic model fallback."""
     
     _instance: Optional['OllamaClient'] = None
     
@@ -24,7 +63,10 @@ class OllamaClient:
         self.base_url = settings.OLLAMA_BASE_URL
         self.base_model_name = settings.OLLAMA_MODEL
         self.resolved_model: Optional[str] = None
+        self.fallback_model: Optional[str] = None
         self.max_retries = 3
+        self.fallback_retries = 2
+        self._available_models: List[str] = []
         
         # Persistent clients — created once, reused across all requests
         self._client: Optional[httpx.AsyncClient] = None
@@ -55,8 +97,9 @@ class OllamaClient:
             )
             logger.info("Ollama HTTP clients initialized with connection pooling.")
         
-        # Resolve model on startup
+        # Resolve models on startup
         await self._resolve_best_model()
+        await self._resolve_fallback_model()
     
     async def shutdown(self):
         """Close persistent HTTP clients. Call on app shutdown."""
@@ -78,6 +121,22 @@ class OllamaClient:
             )
         return client
 
+    # ─── Model Resolution ─────────────────────────────────────────────────
+
+    async def get_available_models(self) -> List[str]:
+        """Fetch all installed models from Ollama."""
+        try:
+            client = self._get_client(fast=True)
+            response = await client.get(f"{self.base_url}/api/tags")
+            if response.status_code == 200:
+                data = response.json()
+                models = [m.get("name", "") for m in data.get("models", [])]
+                self._available_models = models
+                return models
+        except Exception as e:
+            logger.warning(f"Failed to fetch Ollama models: {e}")
+        return []
+
     async def _resolve_best_model(self) -> bool:
         """Finds the best matching model dynamically to prevent 404/500 errors."""
         try:
@@ -86,6 +145,7 @@ class OllamaClient:
             if response.status_code == 200:
                 data = response.json()
                 models = [m.get("name", "") for m in data.get("models", [])]
+                self._available_models = models
                 
                 # Try exact match first
                 if self.base_model_name in models:
@@ -106,46 +166,167 @@ class OllamaClient:
             logger.warning(f"Ollama model resolution failed: {e}")
             return False
 
+    async def _resolve_fallback_model(self) -> bool:
+        """
+        Find the best fallback model from available Ollama models.
+        Picks the highest-priority model from FALLBACK_MODEL_PRIORITY
+        that is NOT the primary resolved model.
+        """
+        if not self._available_models:
+            await self.get_available_models()
+        
+        for priority_model in FALLBACK_MODEL_PRIORITY:
+            for available in self._available_models:
+                # Skip if it's the same as primary
+                if available == self.resolved_model:
+                    continue
+                # Match by prefix (e.g., "llama3" matches "llama3:latest")
+                if available.startswith(priority_model) or available == priority_model:
+                    self.fallback_model = available
+                    logger.info(f"Fallback model resolved: {self.fallback_model}")
+                    return True
+        
+        # If no priority model found, use any model that isn't the primary
+        for available in self._available_models:
+            if available != self.resolved_model:
+                self.fallback_model = available
+                logger.info(f"Fallback model (non-priority): {self.fallback_model}")
+                return True
+        
+        logger.warning("No fallback model available")
+        return False
+
+    # ─── Health Checks ────────────────────────────────────────────────────
+
+    def is_ollama_alive(self) -> bool:
+        """
+        Lightweight TCP ping to check if Ollama is running.
+        Does NOT require a model — just checks if the port is open.
+        """
+        try:
+            # Parse host and port from base_url
+            from urllib.parse import urlparse
+            parsed = urlparse(self.base_url)
+            host = parsed.hostname or "127.0.0.1"
+            port = parsed.port or 11434
+            
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(2.0)
+            result = sock.connect_ex((host, port))
+            sock.close()
+            return result == 0
+        except Exception:
+            return False
+
     async def health_check(self) -> bool:
         """Check if Ollama is running and model is available."""
         if not self.resolved_model:
             return await self._resolve_best_model()
         return True
     
+    # ─── Core Execution Engine ────────────────────────────────────────────
+
     async def _execute_with_retry(self, payload: dict, fast: bool = False) -> dict:
-        """Core execution engine with exponential backoff and retries."""
-        if not self.resolved_model:
+        """
+        Core execution engine with exponential backoff, retries, and 
+        automatic fallback to alternative models.
+        
+        Retry chain:
+        1. Try primary model (self.max_retries attempts)
+        2. Try fallback model (self.fallback_retries attempts)
+        3. Raise OllamaUnavailableError
+        """
+        # ── Phase 1: Try primary model ──
+        primary_error = await self._try_model(
+            payload, self.resolved_model, self.max_retries, fast
+        )
+        
+        if primary_error is None:
+            # Success — payload was modified in-place with model, response returned via side channel
+            return self._last_response  # Set by _try_model
+        
+        logger.warning(f"Primary model failed: {primary_error}")
+        
+        # ── Phase 2: Try fallback model ──
+        if self.fallback_model and self.fallback_model != self.resolved_model:
+            logger.info(f"Attempting fallback model: {self.fallback_model}")
+            fallback_error = await self._try_model(
+                payload, self.fallback_model, self.fallback_retries, fast
+            )
+            
+            if fallback_error is None:
+                return self._last_response
+            
+            logger.warning(f"Fallback model also failed: {fallback_error}")
+        
+        # ── Phase 3: Re-resolve models and try once more ──
+        # Maybe a new model was pulled while we were retrying
+        if await self._resolve_best_model():
+            last_chance_error = await self._try_model(
+                payload, self.resolved_model, 1, fast
+            )
+            if last_chance_error is None:
+                return self._last_response
+        
+        # ── All tiers exhausted ──
+        raise OllamaUnavailableError(
+            f"AI Engine completely unreachable. "
+            f"Primary error: {primary_error}"
+        )
+    
+    async def _try_model(
+        self, payload: dict, model: Optional[str], 
+        max_attempts: int, fast: bool
+    ) -> Optional[str]:
+        """
+        Try executing the payload with a specific model.
+        
+        Returns None on success (response stored in self._last_response).
+        Returns error string on failure.
+        """
+        if not model:
+            # Try to resolve
             if not await self._resolve_best_model():
-                raise Exception("Ollama model not found or service unreachable.")
-                
-        payload["model"] = self.resolved_model
+                return "No model available"
+            model = self.resolved_model
+        
+        payload_copy = {**payload, "model": model}
         client = self._get_client(fast)
         
         last_error = None
-        for attempt in range(self.max_retries):
+        for attempt in range(max_attempts):
             try:
                 response = await client.post(
                     f"{self.base_url}/api/chat",
-                    json=payload
+                    json=payload_copy
                 )
                 response.raise_for_status()
-                return response.json()
+                self._last_response = response.json()
+                return None  # Success
             except httpx.TimeoutException:
                 last_error = "Ollama request timed out. The system might be overloaded."
             except httpx.HTTPStatusError as e:
                 if e.response.status_code == 404:
                     self.resolved_model = None  # Force re-resolution
+                    return f"Model '{model}' not found (404)"
                 last_error = f"Ollama API Error: {e.response.status_code} - {e.response.text}"
+            except httpx.ConnectError:
+                return "Ollama service is not running"
             except httpx.RequestError as e:
                 last_error = f"Connection to AI Engine failed: {str(e)}"
             except Exception as e:
                 last_error = f"Unexpected processing error: {str(e)}"
                 
-            logger.warning(f"Ollama call failed (attempt {attempt+1}/{self.max_retries}): {last_error}")
-            if attempt < self.max_retries - 1:
+            logger.warning(
+                f"Ollama call failed (model={model}, attempt {attempt+1}/{max_attempts}): {last_error}"
+            )
+            if attempt < max_attempts - 1:
                 await asyncio.sleep(1.5 * (attempt + 1))
                 
-        raise Exception(f"AI Engine unresponsive after {self.max_retries} attempts. Last error: {last_error}")
+        return last_error
+
+    # ─── Public Generation Methods ────────────────────────────────────────
+    # Signatures are UNCHANGED — fallback is transparent to callers.
 
     async def generate(
         self,

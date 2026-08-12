@@ -239,6 +239,8 @@ class ChatResponse(BaseModel):
     response: str
     mode: ChatMode
     data_stored: bool = False
+    fallback_used: bool = False
+    fallback_tier: Optional[int] = None  # 1=primary, 2=fallback model, 3=cache, 4=pre-written
 
 
 class SiaRequest(BaseModel):
@@ -254,6 +256,7 @@ class SiaResponse(BaseModel):
     suggested_action: Optional[str] = None  # e.g., "navigate:knowledge", "open:journal"
     action_payload: Optional[str] = None    # e.g., "sleep-hygiene" (article id)
     data_stored: bool = False
+    fallback_used: bool = False
 
 
 class TranslationRequest(BaseModel):
@@ -267,4 +270,5 @@ class TranslationResponse(BaseModel):
     translated_text: str
     detected_language: Optional[str] = None
     data_stored: bool = False
+    fallback_used: bool = False
 

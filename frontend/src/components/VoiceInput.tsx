@@ -86,9 +86,9 @@ export default function VoiceInput({
       </button>
 
       {error && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 
-                        bg-red-900/80 text-xs text-red-200 rounded-lg whitespace-nowrap
-                        border border-red-700 shadow-lg z-50">
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 
+                        bg-red-950/90 text-xs text-red-200 rounded-xl max-w-xs text-center leading-tight
+                        border border-red-500/30 shadow-xl backdrop-blur-md z-50">
           {error}
         </div>
       )}

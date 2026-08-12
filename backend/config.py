@@ -10,11 +10,11 @@ from typing import List
 class Settings(BaseSettings):
     # Ollama Configuration
     OLLAMA_BASE_URL: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "gemma3"  # Use base name, OllamaClient will auto-detect tag
+    OLLAMA_MODEL: str = "therapyllama"  # TherapyLlama-8B: therapy-fine-tuned local model
     
     # Server Configuration
     DEBUG: bool = False
-    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3500,http://127.0.0.1:3000,http://127.0.0.1:3500"
+    CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:3002,http://127.0.0.1:3002,http://localhost:3500,http://127.0.0.1:3500"
     
     # Privacy Settings - These should NEVER be changed to True
     ENABLE_LOGGING: bool = False

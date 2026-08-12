@@ -1,12 +1,20 @@
 """
 Chat Router - Conversational AI endpoints
 Handles multi-turn conversations with different AI personas
+
+FALLBACK CHAIN:
+- Tier 1+2: Ollama (primary + fallback model) — handled by OllamaClient
+- Tier 3: Response cache — cached previous AI responses
+- Tier 4: Pre-written persona responses — hardcoded last resort
 """
 
 from fastapi import APIRouter, HTTPException
+import asyncio
 
 from models.schemas import ChatRequest, ChatResponse, ChatMode, ChatMessage
-from services.ollama_client import OllamaClient
+from services.ollama_client import OllamaClient, OllamaUnavailableError
+from services.response_cache import response_cache
+from services.fallback_responses import get_response as get_fallback_response
 from privacy.text_obfuscator import TextObfuscator
 
 from services.knowledge_base import kb
@@ -48,6 +56,11 @@ async def chat(request: ChatRequest):
     Send a message to the AI in the selected mode
     
     Privacy: No conversation data is stored. Processing is ephemeral.
+    
+    Fallback chain:
+    - Tier 1+2: Live Ollama response (primary + fallback models)
+    - Tier 3: Cached response from previous similar queries
+    - Tier 4: Pre-written persona-specific response
     """
     try:
         # Get shared client
@@ -92,22 +105,63 @@ async def chat(request: ChatRequest):
             "content": obfuscated_message
         })
         
-        # Generate response using structured multi-turn
-        response = await ollama_client.generate_chat(
-            messages=messages,
-            system_prompt=system_prompt,
-            temperature=0.8,
-            max_tokens=384  # Increased from 256 for richer persona responses
-        )
+        # ── Try Tier 1+2: Live Ollama ──
+        try:
+            response = await ollama_client.generate_chat(
+                messages=messages,
+                system_prompt=system_prompt,
+                temperature=0.8,
+                max_tokens=384  # Increased from 256 for richer persona responses
+            )
+            
+            # Success — write to cache asynchronously (fire-and-forget)
+            asyncio.create_task(
+                _cache_response_async(request.mode, request.message, response.strip())
+            )
+            
+            return ChatResponse(
+                response=response.strip(),
+                mode=request.mode,
+                data_stored=False,
+                fallback_used=False,
+                fallback_tier=1,
+            )
+            
+        except OllamaUnavailableError:
+            # Ollama completely offline — fall through to cache/fallback
+            pass
         
+        # ── Tier 3: Try cache ──
+        cached = response_cache.get_chat_response(request.mode, request.message)
+        if cached:
+            return ChatResponse(
+                response=cached,
+                mode=request.mode,
+                data_stored=False,
+                fallback_used=True,
+                fallback_tier=3,
+            )
+        
+        # ── Tier 4: Pre-written fallback ──
+        fallback = get_fallback_response(request.mode, request.message)
         return ChatResponse(
-            response=response.strip(),
+            response=fallback,
             mode=request.mode,
-            data_stored=False
+            data_stored=False,
+            fallback_used=True,
+            fallback_tier=4,
         )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
+
+
+async def _cache_response_async(mode: str, query: str, response: str):
+    """Write response to cache in the background. Failures are silent."""
+    try:
+        response_cache.put_chat_response(mode, query, response)
+    except Exception:
+        pass  # Cache failures should never crash the main flow
 
 
 @router.delete("/chat/clear")

@@ -26,6 +26,7 @@ async def lifespan(app: FastAPI):
     """Application lifespan - initialize and cleanup shared resources."""
     from services.ollama_client import OllamaClient
     from services.knowledge_base import kb
+    from services.response_cache import response_cache
     
     # Startup
     client = OllamaClient.get_instance()
@@ -33,10 +34,19 @@ async def lifespan(app: FastAPI):
         await client.startup()
         if client.resolved_model:
             print(f"  Ollama connected - Model: {client.resolved_model}")
+            if client.fallback_model:
+                print(f"  Fallback model: {client.fallback_model}")
+            else:
+                print(f"  No fallback model available (only one model installed)")
         else:
             print(f"  Ollama not available. Please start Ollama with 'ollama run {client.base_model_name}'")
+            print(f"  App will operate in offline mode (cache + fallback responses)")
     except Exception as e:
         print(f"  Failed to connect to Ollama: {str(e)}")
+        print(f"  App will operate in offline mode (cache + fallback responses)")
+    
+    # Initialize response cache
+    response_cache.initialize()
     
     # Load knowledge base
     kb.load_data()
@@ -83,8 +93,10 @@ async def health_check():
         "status": "healthy",
         "ollama": "connected" if ollama_ready else "disconnected",
         "model": client.resolved_model or "none",
+        "fallback_model": client.fallback_model or "none",
         "privacy": "enforced",
-        "storage": "none"
+        "storage": "none",
+        "offline_capable": True,
     }
 
 
@@ -101,3 +113,28 @@ async def root():
             "message": "Your thoughts are safe. Nothing is stored."
         }
     }
+
+
+# ─── Cache Management Endpoints ───────────────────────────────────────────────
+
+@app.get("/api/cache/stats")
+async def cache_stats():
+    """Get response cache statistics."""
+    from services.response_cache import response_cache
+    return response_cache.get_stats()
+
+
+@app.post("/api/cache/clear")
+async def cache_clear():
+    """Clear all cached responses."""
+    from services.response_cache import response_cache
+    response_cache.clear_all()
+    return {"message": "All cached responses cleared", "data_stored": False}
+
+
+@app.post("/api/cache/clear/{persona}")
+async def cache_clear_persona(persona: str):
+    """Clear cached responses for a specific persona."""
+    from services.response_cache import response_cache
+    response_cache.clear_persona(persona)
+    return {"message": f"Cache cleared for persona: {persona}", "data_stored": False}

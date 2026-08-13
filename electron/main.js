@@ -498,6 +498,10 @@ function setupIPC() {
 // ─── Auto-Updater ────────────────────────────────────────────────────────────
 
 function setupAutoUpdater() {
+  // Supply Chain Security Hardening
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '1'; // Enforce strict TLS for updates
+  autoUpdater.allowDowngrade = false; // Prevent rollback attacks to vulnerable versions
+  
   // Disable auto-download — let user decide
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;

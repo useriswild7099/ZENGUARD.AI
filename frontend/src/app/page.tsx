@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo, useTransition } from 'react';
 import Image from 'next/image';
 import { sentimentClient } from '@/lib/api';
 import dynamic from 'next/dynamic';
@@ -38,14 +38,15 @@ import {
 import { JournalEntry } from '@/types/journal';
 import { KnowledgeArticle } from '@/lib/knowledge';
 import { journalStorage, generateInsights } from '@/lib/storage';
+import JournalVaultLock from '@/components/JournalVaultLock';
 import { QuickMoodCheck } from '@/components/QuickMoodCheck';
 import { NewEntryFlow } from '@/components/journal/NewEntryFlow';
-import { TimelineView } from '@/components/journal/TimelineView';
-import { InsightsDashboard } from '@/components/journal/InsightsDashboard';
-import { StreakTracker } from '@/components/journal/StreakTracker';
-import { JournalCalendar } from '@/components/journal/JournalCalendar';
-import { YearInPixels } from '@/components/journal/YearInPixels';
-import { MoodChart } from '@/components/journal/MoodChart';
+const TimelineView = dynamic(() => import('@/components/journal/TimelineView').then(m => ({ default: m.TimelineView })), { loading: () => <div className="animate-pulse bg-zinc-200 dark:bg-white/5 w-full h-[300px] rounded-xl" /> });
+const InsightsDashboard = dynamic(() => import('@/components/journal/InsightsDashboard').then(m => ({ default: m.InsightsDashboard })), { loading: () => <div className="animate-pulse bg-zinc-200 dark:bg-white/5 w-full h-[400px] rounded-xl" /> });
+const StreakTracker = dynamic(() => import('@/components/journal/StreakTracker').then(m => ({ default: m.StreakTracker })), { loading: () => <div className="animate-pulse bg-zinc-200 dark:bg-white/5 w-full h-[100px] rounded-xl" /> });
+const JournalCalendar = dynamic(() => import('@/components/journal/JournalCalendar').then(m => ({ default: m.JournalCalendar })), { loading: () => <div className="animate-pulse bg-zinc-200 dark:bg-white/5 w-full h-[500px] rounded-xl" /> });
+const YearInPixels = dynamic(() => import('@/components/journal/YearInPixels').then(m => ({ default: m.YearInPixels })), { loading: () => <div className="animate-pulse bg-zinc-200 dark:bg-white/5 w-full h-[400px] rounded-xl" /> });
+const MoodChart = dynamic(() => import('@/components/journal/MoodChart').then(m => ({ default: m.MoodChart })), { loading: () => <div className="animate-pulse bg-zinc-200 dark:bg-white/5 w-full h-[300px] rounded-xl" /> });
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Toaster } from '@/components/ui/sonner';
@@ -87,6 +88,7 @@ export default function Home() {
   const [activeView, setActiveView] = useState<'landing' | 'journal' | 'chat' | 'knowledge' | 'help' | 'breathing' | 'grounding'>('landing');
   const [showCopingNavigator, setShowCopingNavigator] = useState(false);
   const [routedArticle, setRoutedArticle] = useState<KnowledgeArticle | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   // ZenGuard Journal state
   const [entries, setEntries] = useState<JournalEntry[]>([]);
@@ -141,31 +143,43 @@ export default function Home() {
   }, []);
   // --- End Browser History Integration ---
 
+  // Vault States
+  const [vaultUnlocked, setVaultUnlocked] = useState(false);
+  const [vaultPassword, setVaultPassword] = useState('');
+
   useEffect(() => {
     sentimentClient.healthCheck().then(setApiConnected);
   }, []);
 
-  // Load journal entries from localStorage
-  useEffect(() => {
-    if (activeView === 'journal') {
-      const loadedEntries = journalStorage.getEntries();
-      setEntries(loadedEntries);
-    }
-  }, [activeView]);
-
-  const handleSaveEntry = (entryData: Omit<JournalEntry, 'id' | 'date'>) => {
+  const handleSaveEntry = async (entryData: Omit<JournalEntry, 'id' | 'date'>) => {
+    if (!vaultUnlocked || !vaultPassword) return;
+    
     const newEntry: JournalEntry = {
       ...entryData,
       id: crypto.randomUUID(),
       date: new Date(),
     };
-    journalStorage.saveEntry(newEntry);
-    setEntries(journalStorage.getEntries());
+    
+    // Save via encrypted vault API
+    const success = await sentimentClient.saveJournalEntry(vaultPassword, newEntry);
+    if (success) {
+      setEntries([newEntry, ...entries]);
+    }
+    
+    // Update local streak (optional, streak can remain local unencrypted)
+    journalStorage.updateStreak(newEntry.date);
+    
     setIsCreatingEntry(false);
   };
 
-  const insights = generateInsights(entries);
-  const streak = journalStorage.getStreak();
+  const handleVaultUnlock = (password: string, decryptedEntries: JournalEntry[]) => {
+    setVaultPassword(password);
+    setEntries(decryptedEntries);
+    setVaultUnlocked(true);
+  };
+
+  const insights = useMemo(() => generateInsights(entries), [entries]);
+  const streak = useMemo(() => journalStorage.getStreak(), [entries]);
 
   // Scroll to top when view changes synchronously before DOM paint
   useLayoutEffect(() => {
@@ -323,7 +337,7 @@ export default function Home() {
 
       {activeView === 'chat' && (
         <div className="min-h-screen relative flex flex-col items-center justify-center p-4 md:p-8">
-          <div className="w-full max-w-2xl z-10">
+          <div className="w-full z-10">
             <ChatInterface onBack={goBack} />
           </div>
         </div>
@@ -396,7 +410,9 @@ export default function Home() {
             </div>
           </header>
           <main className={`relative z-10 container max-w-7xl mx-auto px-4 py-8 flex-1 ${isLight ? 'text-zinc-900' : 'text-white'}`}>
-            {entries.length === 0 ? (
+            {!vaultUnlocked ? (
+              <JournalVaultLock onUnlock={handleVaultUnlock} isLight={isLight} />
+            ) : entries.length === 0 ? (
               <div className="max-w-3xl mx-auto text-center space-y-8 py-20">
                 <div className={`w-24 h-24 border rounded-full mx-auto flex items-center justify-center backdrop-blur-md shadow-2xl ${isLight ? 'bg-zinc-100 border-zinc-200' : 'bg-white/5 border-white/10'}`}><BookOpen className={`h-12 w-12 ${isLight ? 'text-zinc-400' : 'text-white/60'}`} /></div>
                 <h2 className="text-4xl font-bold">Welcome to ZenGuard</h2>
@@ -406,7 +422,7 @@ export default function Home() {
             ) : (
               <div className="space-y-12">
                 <StreakTracker streak={streak} />
-                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+                <Tabs value={activeTab} onValueChange={(v) => startTransition(() => setActiveTab(v as any))} className="w-full">
                   <TabsList className={`p-1 mb-8 border ${isLight ? 'bg-zinc-100 border-zinc-200' : 'bg-white/5 border-white/10'}`}>
                     <TabsTrigger value="timeline" className={`data-[state=active]:shadow-sm ${isLight ? 'data-[state=active]:bg-white text-zinc-500 data-[state=active]:text-zinc-900' : 'data-[state=active]:bg-white/10 text-white/60 data-[state=active]:text-white'}`}><BookOpen className="h-4 w-4 mr-2" />Timeline</TabsTrigger>
                     <TabsTrigger value="calendar" className={`data-[state=active]:shadow-sm ${isLight ? 'data-[state=active]:bg-white text-zinc-500 data-[state=active]:text-zinc-900' : 'data-[state=active]:bg-white/10 text-white/60 data-[state=active]:text-white'}`}><Calendar className="h-4 w-4 mr-2" />Calendar</TabsTrigger>

@@ -4,9 +4,7 @@ import { useState, useEffect, useRef, memo, useCallback } from 'react';
 import Image from 'next/image';
 import { chatClient, ChatMode, ChatMessage } from '@/lib/api';
 import { prepareText } from '@/lib/privacy';
-import { Phone } from 'lucide-react';
 import VoiceInput from './VoiceInput';
-import LiveCallModal from './LiveCallModal';
 
 // Memoized helper component for personality avatar
 const PersonalityAvatar = memo(({ mode, size = 48, className = '' }: { mode: ChatMode; size?: number; className?: string }) => {
@@ -65,7 +63,6 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingModes, setIsLoadingModes] = useState(true);
-  const [isCallActive, setIsCallActive] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -75,7 +72,32 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
     const loadModes = async () => {
       setIsLoadingModes(true);
       const fetchedModes = await chatClient.getModes();
-      setModes(fetchedModes);
+      
+      const topPriorities = [
+        'carl_rogers',
+        'mindfulness_guide',
+        'mother',
+        'father',
+        'logical_mentor',
+        'steve_jobs',
+        'compassionate_friend',
+        'brother',
+        'best_friend',
+        'marcus_aurelius',
+        'rumi'
+      ];
+
+      const sortedModes = [...fetchedModes].sort((a, b) => {
+        const indexA = topPriorities.indexOf(a.id);
+        const indexB = topPriorities.indexOf(b.id);
+        
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return 0; 
+      });
+
+      setModes(sortedModes);
       setIsLoadingModes(false);
     };
     loadModes();
@@ -152,7 +174,7 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
       console.error('Chat error:', error);
       const errorMessage: ChatMessage = { 
         role: 'assistant', 
-        content: "Hi! I am currently running in a limited web environment. To chat with me and other companions, please download ZenGuard AI and run it locally. \n\nYou can find the full, private, local installation instructions at: https://github.com/useriswild7099/ZENGUARD.AI" 
+        content: "Welcome to the ZenGuard AI Web Demonstration.\n\nBecause ZenGuard is a strict privacy-first platform that relies on local LLM processing (Ollama) and encrypted desktop vaults, the AI companions cannot be run in a cloud browser.\n\nPlease download the official Desktop Software from our repository to experience the full capabilities:\nhttps://github.com/useriswild7099/ZENGUARD.AI/releases" 
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -177,7 +199,7 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
   // Mode selection screen
   if (!selectedMode) {
     return (
-      <div className="w-full max-w-4xl mx-auto">
+      <div className="w-full max-w-[95vw] xl:max-w-[1600px] mx-auto">
         <div className="glass-card p-6 md:p-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
@@ -215,30 +237,60 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
 
           {/* Mode Cards */}
           {isLoadingModes ? (
-            <div className="flex justify-center py-12">
-              <div className="w-8 h-8 border-3 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div key={i} className="h-72 w-full rounded-2xl bg-zinc-200 dark:bg-zinc-800 animate-pulse flex flex-col justify-end p-5 border border-zinc-300 dark:border-white/5">
+                  <div className="h-6 w-3/4 bg-zinc-300 dark:bg-zinc-700 rounded mb-3"></div>
+                  <div className="h-4 w-full bg-zinc-300 dark:bg-zinc-700 rounded mb-2"></div>
+                  <div className="h-4 w-5/6 bg-zinc-300 dark:bg-zinc-700 rounded mb-4"></div>
+                  <div className="h-5 w-20 bg-zinc-300 dark:bg-zinc-700 rounded-full mt-auto"></div>
+                </div>
+              ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {filteredModes.map((mode) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+              {filteredModes.map((mode, index) => (
                 <button
                   key={mode.id}
                   onClick={() => handleModeSelect(mode)}
-                  className={`glass-card text-left p-5 dark:hover:bg-white/20 hover:bg-zinc-100 transition-all duration-300 group shadow-lg relative overflow-hidden flex flex-col items-center justify-center text-center dark:bg-transparent bg-white border dark:border-white/10 border-zinc-200`}
+                  className={`group relative h-72 w-full rounded-2xl overflow-hidden transition-all duration-500 shadow-lg hover:shadow-2xl hover:scale-[1.03] flex flex-col justify-end text-left border border-white/10 dark:border-white/5 bg-zinc-900`}
                 >
-                  <div className={`absolute top-0 left-0 w-full h-1 bg-${mode.color || 'purple'}-500/50`}></div>
-                  <div className="flex flex-col items-center gap-3 mb-2">
-                    <div className="group-hover:scale-110 transition-transform dark:bg-white/10 bg-zinc-100 p-2 rounded-full">
-                      <PersonalityAvatar mode={mode} size={48} />
+                  {/* Background Image/Emoji */}
+                  {mode.image ? (
+                    <Image 
+                      src={mode.image} 
+                      alt={mode.name}
+                      fill
+                      priority={index < 6}
+                      sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 16vw"
+                      className="object-cover transition-transform duration-700 group-hover:scale-110"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-zinc-800 transition-transform duration-700 group-hover:scale-110">
+                      <span className="text-7xl">{mode.emoji}</span>
                     </div>
-                    <h3 className="font-semibold dark:text-white text-zinc-900 text-lg">{mode.name}</h3>
-                  </div>
-                  <p className="text-sm dark:text-zinc-300 text-zinc-600 line-clamp-2">{mode.description}</p>
-                  {mode.category && (
-                    <span className="inline-block mt-3 text-[10px] uppercase tracking-wider text-zinc-500 dark:bg-white/5 bg-zinc-100 px-2 py-1 rounded">
-                      {mode.category}
-                    </span>
                   )}
+
+                  {/* Blackout Gradient for text readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent"></div>
+
+                  {/* Content (Text & Tags) positioned at bottom */}
+                  <div className="relative z-10 p-5 w-full">
+                    <h3 className="font-bold text-white text-xl md:text-2xl tracking-tight leading-tight mb-1 drop-shadow-lg">
+                      {mode.name}
+                    </h3>
+                    <p className="text-sm text-zinc-300 line-clamp-2 mb-3 drop-shadow-md">
+                      {mode.description}
+                    </p>
+                    {mode.category && (
+                      <span className="inline-block text-[10px] uppercase font-bold tracking-wider text-white bg-white/20 backdrop-blur-md border border-white/30 px-2.5 py-1 rounded-full shadow-sm">
+                        {mode.category}
+                      </span>
+                    )}
+                  </div>
                 </button>
               ))}
             </div>
@@ -283,15 +335,6 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
 
           <div className="absolute right-4 flex items-center gap-3">
             <button
-              type="button"
-              onClick={() => setIsCallActive(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 text-xs font-semibold transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
-              title={`Start WhatsApp-style Live Voice Call with ${selectedMode.name}`}
-            >
-              <Phone className="w-3.5 h-3.5 fill-current animate-pulse" />
-              <span>Live Call</span>
-            </button>
-            <button
               onClick={onBack}
               className="dark:text-zinc-400 text-zinc-500 dark:hover:text-white hover:text-zinc-900 transition-colors text-sm"
             >
@@ -299,14 +342,6 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
             </button>
           </div>
         </div>
-
-        {/* Live Call Modal */}
-        {isCallActive && (
-          <LiveCallModal 
-            mode={selectedMode} 
-            onClose={() => setIsCallActive(false)} 
-          />
-        )}
 
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">

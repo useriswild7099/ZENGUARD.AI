@@ -151,9 +151,6 @@ export function QuickMoodCheck({ onNavigate }: QuickMoodCheckProps) {
                 onClick={() => setSelectedMood(mood)}
                 className={`group relative p-3.5 rounded-2xl border transition-all duration-300 flex flex-col items-center text-center gap-2 hover:scale-[1.04] active:scale-[0.98] ${mood.bgGlow} ${mood.borderGlow} dark:hover:border-white/40 hover:border-zinc-400`}
               >
-                <span className="text-3xl transition-transform group-hover:scale-125 duration-300">
-                  {mood.emoji}
-                </span>
                 <div>
                   <span className="block text-xs font-bold dark:text-white text-zinc-800 leading-tight">
                     {mood.label}
@@ -170,9 +167,6 @@ export function QuickMoodCheck({ onNavigate }: QuickMoodCheckProps) {
           <div className="animate-fade-up bg-white/5 border border-white/10 rounded-2xl p-6 relative overflow-hidden">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div className="flex items-start gap-4">
-                <span className="text-4xl p-3 rounded-2xl bg-white/5 border border-white/10 flex-shrink-0">
-                  {selectedMood.emoji}
-                </span>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className={`text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-gradient-to-r ${selectedMood.accent} text-zinc-950`}>

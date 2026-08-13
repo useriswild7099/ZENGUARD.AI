@@ -69,7 +69,7 @@ export default function MethodologySection({ onNavigate }: MethodologySectionPro
           </div>
 
           <div className="relative">
-             <div className="glass-card-premium p-1 overflow-hidden animate-gentle-float">
+             <div className="glass-card-premium p-1 overflow-hidden">
                 <div className="p-8 md:p-12 flex flex-col h-full">
                    <div className="flex items-center gap-4 mb-10">
                       <div className="w-12 h-12 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center">

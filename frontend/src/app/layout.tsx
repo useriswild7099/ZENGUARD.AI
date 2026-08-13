@@ -12,18 +12,21 @@ const inter = Inter({
   subsets: ["latin"],
   variable: "--font-body",
   weight: ["300", "400", "500", "600"],
+  display: "swap",
 });
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-heading",
   weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
 });
 
 const courierPrime = Courier_Prime({
   subsets: ["latin"],
   variable: "--font-mono",
   weight: ["400", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {

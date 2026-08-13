@@ -3,7 +3,7 @@
  * Handles all communication with the sentiment analysis API
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
 export interface Emotion {
   type: string;
@@ -193,6 +193,62 @@ class SentimentClient {
       timeout: 10000
     });
   }
+
+  // --- JOURNAL VAULT API ---
+
+  async checkVaultStatus(): Promise<boolean> {
+    try {
+      const response = await fetchWithTimeout(`${this.baseUrl}/api/journal/vault_status`);
+      if (!response.ok) return false;
+      const data = await response.json();
+      return data.is_initialized === true;
+    } catch {
+      return false;
+    }
+  }
+
+  async setupVault(password: string): Promise<boolean> {
+    const response = await fetchWithTimeout(`${this.baseUrl}/api/journal/setup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+    return response.ok;
+  }
+
+  async unlockVault(password: string): Promise<boolean> {
+    const response = await fetchWithTimeout(`${this.baseUrl}/api/journal/unlock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+    return response.ok;
+  }
+
+  async getJournalEntries(password: string): Promise<any[]> {
+    const response = await fetchWithTimeout(`${this.baseUrl}/api/journal/entries/get`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    // Rehydrate string dates back to Date objects
+    return data.entries.map((e: any) => ({
+      ...e,
+      date: new Date(e.date)
+    }));
+  }
+
+  async saveJournalEntry(password: string, entry: any): Promise<boolean> {
+    const response = await fetchWithTimeout(`${this.baseUrl}/api/journal/entry`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // Send date as string for JSON serialization
+      body: JSON.stringify({ password, entry: { ...entry, date: entry.date.toISOString() } })
+    });
+    return response.ok;
+  }
 }
 
 // Export singleton instance
@@ -227,15 +283,23 @@ export interface ChatResponse {
 
 class ChatClient {
   private baseUrl: string;
+  private modesCache: ChatMode[] | null = null;
+  private modesCacheTime: number = 0;
+  private readonly CACHE_TTL = 1000 * 60 * 60; // 1 hour
 
   constructor() {
     this.baseUrl = API_BASE_URL;
   }
 
   /**
-   * Get available chat modes with robust offline fallback
+   * Get available chat modes with robust offline fallback and 0ms TTFB caching
    */
   async getModes(): Promise<ChatMode[]> {
+    // Return from cache if fresh (drastically reduces TTFB and layout shift)
+    if (this.modesCache && Date.now() - this.modesCacheTime < this.CACHE_TTL) {
+      return this.modesCache;
+    }
+
     const fallbackModes: ChatMode[] = [
       { id: "compassionate_friend", name: "Compassionate Friend", emoji: "🤗", description: "A warm, understanding listener who offers emotional support, validation, and a safe space to share your feelings.", category: "general", color: "purple", image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200&auto=format&fit=crop" },
       { id: "academic_coach", name: "Academic Coach", emoji: "📚", description: "Helps with study stress, time management, and academic motivation. Practical, structured, and encouraging.", category: "general", color: "blue", image: "https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=200&auto=format&fit=crop" },
@@ -249,7 +313,14 @@ class ChatClient {
       const response = await fetchWithTimeout(`${this.baseUrl}/api/modes`, { timeout: 8000 });
       if (!response.ok) return fallbackModes;
       const data = await response.json();
-      return data.modes && data.modes.length > 0 ? data.modes : fallbackModes;
+      
+      if (data.modes && data.modes.length > 0) {
+        this.modesCache = data.modes;
+        this.modesCacheTime = Date.now();
+        return data.modes;
+      }
+      
+      return fallbackModes;
     } catch {
       // If backend is unreachable (e.g., deployed on Vercel without a live backend), return beautiful fallbacks so UI never breaks
       return fallbackModes;

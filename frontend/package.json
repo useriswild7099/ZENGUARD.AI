@@ -72,5 +72,15 @@
     "eslint-config-next": "^15.1.0",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@studio-freight/react-lenis": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    },
+    "@studio-freight/hamo": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    }
   }
 }

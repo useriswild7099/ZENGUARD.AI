@@ -172,9 +172,25 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
       console.error('Chat error:', error);
+      
+      // Smart detection: check if running on public Vercel/Web vs Local/Electron
+      const isCloudEnvironment = 
+        process.env.NODE_ENV === 'production' && 
+        typeof window !== 'undefined' && 
+        !['localhost', '127.0.0.1', ''].includes(window.location.hostname) &&
+        !window.location.hostname.startsWith('192.168.') &&
+        !window.location.hostname.startsWith('10.');
+
+      let errorText = "";
+      if (isCloudEnvironment) {
+        errorText = "Welcome to the ZenGuard AI Web Demonstration.\n\nBecause ZenGuard is a strict privacy-first platform that relies on local LLM processing (Ollama) and encrypted desktop vaults, the AI companions cannot be run in a cloud browser.\n\nPlease download the official Desktop Software from our repository to experience the full capabilities:\nhttps://github.com/useriswild7099/ZENGUARD.AI/releases";
+      } else {
+        errorText = "Connection Error: The AI backend is currently offline. Since you are running this locally, please ensure that your FastAPI server and Ollama are actively running on your machine.";
+      }
+
       const errorMessage: ChatMessage = { 
         role: 'assistant', 
-        content: "Welcome to the ZenGuard AI Web Demonstration.\n\nBecause ZenGuard is a strict privacy-first platform that relies on local LLM processing (Ollama) and encrypted desktop vaults, the AI companions cannot be run in a cloud browser.\n\nPlease download the official Desktop Software from our repository to experience the full capabilities:\nhttps://github.com/useriswild7099/ZENGUARD.AI/releases" 
+        content: errorText 
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {

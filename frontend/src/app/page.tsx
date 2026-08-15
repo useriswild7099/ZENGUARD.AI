@@ -60,10 +60,12 @@ const StaticBackground = memo(({ activeView, isLight }: { activeView: string; is
         Using a high-quality starry sky image. 
         If you want to use your exact local file, save it as "public/stars-bg.jpg" and change this src to "/stars-bg.jpg"
       */}
-      <img
-        src="https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?q=80&w=3000&auto=format&fit=crop"
+      <Image
+        src="/stars-bg.jpg"
         alt="Starry Night Background"
-        className="absolute w-full h-full object-cover will-change-transform"
+        fill
+        priority
+        className="object-cover will-change-transform"
         style={{ 
           filter: activeView === 'landing' ? 'brightness(0.8)' : activeView === 'help' ? 'brightness(0.3)' : 'brightness(0.5)',
           transform: 'translate3d(0, 0, 0)'

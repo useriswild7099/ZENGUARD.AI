@@ -222,7 +222,16 @@ class SentimentClient {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password })
     });
-    return response.ok;
+    
+    if (!response.ok) {
+      try {
+        const data = await response.json();
+        throw new Error(data.detail || 'Incorrect password.');
+      } catch (e: any) {
+        throw new Error(e.message || 'Incorrect password.');
+      }
+    }
+    return true;
   }
 
   async getJournalEntries(password: string): Promise<any[]> {

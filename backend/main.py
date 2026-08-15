@@ -76,6 +76,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi import HTTPException
+from fastapi.responses import JSONResponse
+
+# Global Exception Handler to prevent stack trace leaks (Anti-Reconnaissance)
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    if isinstance(exc, HTTPException):
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+        
+    print(f"Internal Error intercepted: {str(exc)}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error"},
+    )
+
 # Include routers
 app.include_router(sentiment.router, prefix="/api", tags=["Sentiment Analysis"])
 app.include_router(chat.router, prefix="/api", tags=["AI Chat"])

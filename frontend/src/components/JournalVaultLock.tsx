@@ -50,16 +50,12 @@ export default function JournalVaultLock({ onUnlock, isLight }: JournalVaultLock
         }
       } else {
         // Unlock existing vault
-        const success = await sentimentClient.unlockVault(password);
-        if (success) {
-          const entries = await sentimentClient.getJournalEntries(password);
-          onUnlock(password, entries);
-        } else {
-          setError('Incorrect password. Vault remains locked.');
-        }
+        await sentimentClient.unlockVault(password);
+        const entries = await sentimentClient.getJournalEntries(password);
+        onUnlock(password, entries);
       }
-    } catch (e) {
-      setError('An error occurred communicating with the secure vault.');
+    } catch (e: any) {
+      setError(e.message || 'An error occurred communicating with the secure vault.');
     } finally {
       setLoading(false);
     }

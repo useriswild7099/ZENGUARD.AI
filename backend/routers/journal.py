@@ -76,9 +76,23 @@ async def setup_vault(req: SetupRequest):
     return {"status": "success"}
 
 
+import time
+
+# Rate limiting state
+_FAILED_ATTEMPTS = 0
+_LOCKOUT_UNTIL = 0
+MAX_ATTEMPTS = 5
+LOCKOUT_DURATION = 60
+
 @router.post("/unlock")
 async def unlock_vault(req: UnlockRequest):
     """Verifies the password by attempting to decrypt the .verify file"""
+    global _FAILED_ATTEMPTS, _LOCKOUT_UNTIL
+    
+    if time.time() < _LOCKOUT_UNTIL:
+        remaining = int(_LOCKOUT_UNTIL - time.time())
+        raise HTTPException(status_code=429, detail=f"Too many failed attempts. Vault locked for {remaining} seconds.")
+        
     salt_file = os.path.join(VAULT_DIR, ".salt")
     verify_file = os.path.join(VAULT_DIR, ".verify")
     
@@ -97,7 +111,14 @@ async def unlock_vault(req: UnlockRequest):
         decrypted = fernet.decrypt(encrypted_data)
         if decrypted != b"ZENGUARD_VAULT_OK":
             raise ValueError()
+            
+        # Reset attempts on success
+        _FAILED_ATTEMPTS = 0
     except Exception:
+        _FAILED_ATTEMPTS += 1
+        if _FAILED_ATTEMPTS >= MAX_ATTEMPTS:
+            _LOCKOUT_UNTIL = time.time() + LOCKOUT_DURATION
+            _FAILED_ATTEMPTS = 0
         raise HTTPException(status_code=401, detail="Incorrect password.")
         
     return {"status": "success"}

@@ -10,6 +10,7 @@ FALLBACK CHAIN:
 
 from fastapi import APIRouter, HTTPException
 import asyncio
+import re
 
 from models.schemas import ChatRequest, ChatResponse, ChatMode, ChatMessage
 from services.ollama_client import OllamaClient, OllamaUnavailableError
@@ -87,7 +88,7 @@ async def chat(request: ChatRequest):
                 print(f"  RAG Hit: Found reference on Page {results[0]['page']}")
 
         # Construct System Prompt - Personality FIRST
-        personality_prompt = MODE_PROMPTS.get(request.mode, MODE_PROMPTS[ChatMode.COMPASSIONATE_FRIEND])
+        personality_prompt = MODE_PROMPTS.get(request.mode) or MODE_PROMPTS.get("compassionate_friend") or "You are a compassionate, empathetic mental health companion."
         
         # Build system prompt: Reality Filter (Constraints) + Personality (Behavior)
         system_prompt = f"{HUMAN_REALITY_FILTER}\n\n[YOUR PRIMARY PERSONALITY]:\n{personality_prompt}"
@@ -128,13 +129,18 @@ async def chat(request: ChatRequest):
                     model_override=request.model
                 )
             
+            clean_res = response.strip()
+            # Clean any internal prompt scaffolding tags if leaked by model
+            clean_res = re.sub(r"^\[[A-Z0-9_\s:-]{2,30}\]\s*", "", clean_res)
+            clean_res = re.sub(r"^\*\*(?:User's Response|Response|AI|Assistant):\*\*\s*", "", clean_res, flags=re.IGNORECASE).strip()
+
             # Success — write to cache asynchronously (fire-and-forget)
             asyncio.create_task(
-                _cache_response_async(request.mode, request.message, response.strip())
+                _cache_response_async(request.mode, request.message, clean_res)
             )
             
             return ChatResponse(
-                response=response.strip(),
+                response=clean_res,
                 mode=request.mode,
                 data_stored=False,
                 fallback_used=False,

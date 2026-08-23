@@ -228,17 +228,16 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     """Request for chat endpoint"""
     message: str = Field(min_length=1, max_length=5000)
-    mode: ChatMode = ChatMode.COMPASSIONATE_FRIEND
+    mode: str = "compassionate_friend"
     session_id: Optional[str] = None
     history: List[ChatMessage] = []
     model: Optional[str] = None
 
 
-
 class ChatResponse(BaseModel):
     """Response from chat endpoint"""
     response: str
-    mode: ChatMode
+    mode: str
     data_stored: bool = False
     fallback_used: bool = False
     fallback_tier: Optional[int] = None  # 1=primary, 2=fallback model, 3=cache, 4=pre-written

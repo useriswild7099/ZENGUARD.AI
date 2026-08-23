@@ -154,7 +154,7 @@ export default function Home() {
   }, []);
 
   const handleSaveEntry = async (entryData: Omit<JournalEntry, 'id' | 'date'>) => {
-    if (!vaultUnlocked || !vaultPassword) return;
+    if (!vaultUnlocked) return;
     
     const newEntry: JournalEntry = {
       ...entryData,
@@ -162,15 +162,20 @@ export default function Home() {
       date: new Date(),
     };
     
-    // Save via encrypted vault API
-    const success = await sentimentClient.saveJournalEntry(vaultPassword, newEntry);
-    if (success) {
-      setEntries([newEntry, ...entries]);
+    // Always persist to client-side storage so entries are safely stored in browser
+    journalStorage.saveEntry(newEntry);
+    
+    // If backend is active and vaultPassword is set, sync with desktop encrypted vault
+    if (apiConnected && vaultPassword) {
+      try {
+        await sentimentClient.saveJournalEntry(vaultPassword, newEntry);
+      } catch (e) {
+        console.warn('Backend vault sync unavailable, saved to browser storage:', e);
+      }
     }
     
-    // Update local streak (optional, streak can remain local unencrypted)
+    setEntries(prev => [newEntry, ...prev.filter(e => e.id !== newEntry.id)]);
     journalStorage.updateStreak(newEntry.date);
-    
     setIsCreatingEntry(false);
   };
 

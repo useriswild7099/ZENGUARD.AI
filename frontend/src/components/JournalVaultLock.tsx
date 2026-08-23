@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Lock, Unlock, Shield, KeyRound, AlertCircle } from 'lucide-react';
 import { sentimentClient } from '@/lib/api';
+import { journalStorage } from '@/lib/storage';
 import { JournalEntry } from '@/types/journal';
 
 interface JournalVaultLockProps {
@@ -8,11 +9,21 @@ interface JournalVaultLockProps {
   isLight: boolean;
 }
 
+// Helper to hash password for client-side vault verification
+async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 export default function JournalVaultLock({ onUnlock, isLight }: JournalVaultLockProps) {
   const [password, setPassword] = useState('');
   const [isSetup, setIsSetup] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isLocalVault, setIsLocalVault] = useState(false);
 
   useEffect(() => {
     checkStatus();
@@ -20,10 +31,21 @@ export default function JournalVaultLock({ onUnlock, isLight }: JournalVaultLock
 
   const checkStatus = async () => {
     try {
-      const exists = await sentimentClient.checkVaultStatus();
-      setIsSetup(!exists);
+      const isBackendAlive = await sentimentClient.healthCheck();
+      if (isBackendAlive) {
+        const exists = await sentimentClient.checkVaultStatus();
+        setIsSetup(!exists);
+        setIsLocalVault(false);
+      } else {
+        // Standalone browser mode
+        setIsLocalVault(true);
+        const localHash = typeof window !== 'undefined' ? localStorage.getItem('zenguard_vault_hash') : null;
+        setIsSetup(!localHash);
+      }
     } catch (e) {
-      console.error(e);
+      setIsLocalVault(true);
+      const localHash = typeof window !== 'undefined' ? localStorage.getItem('zenguard_vault_hash') : null;
+      setIsSetup(!localHash);
     } finally {
       setLoading(false);
     }
@@ -37,25 +59,58 @@ export default function JournalVaultLock({ onUnlock, isLight }: JournalVaultLock
     setError('');
 
     try {
+      if (isLocalVault) {
+        const hashed = await hashPassword(password);
+        if (isSetup) {
+          localStorage.setItem('zenguard_vault_hash', hashed);
+          localStorage.setItem('zenguard_vault_initialized', 'true');
+          setIsSetup(false);
+          const entries = journalStorage.getEntries();
+          onUnlock(password, entries);
+        } else {
+          const storedHash = localStorage.getItem('zenguard_vault_hash');
+          if (storedHash && storedHash !== hashed) {
+            setError('Incorrect password. Please try again.');
+            return;
+          }
+          const entries = journalStorage.getEntries();
+          onUnlock(password, entries);
+        }
+        return;
+      }
+
       if (isSetup) {
-        // Create new vault
+        // Create new vault via backend
         const success = await sentimentClient.setupVault(password);
         if (success) {
           setIsSetup(false);
-          // Auto unlock after setup
           const entries = await sentimentClient.getJournalEntries(password);
           onUnlock(password, entries);
         } else {
           setError('Failed to create vault.');
         }
       } else {
-        // Unlock existing vault
+        // Unlock existing vault via backend
         await sentimentClient.unlockVault(password);
         const entries = await sentimentClient.getJournalEntries(password);
         onUnlock(password, entries);
       }
     } catch (e: any) {
-      setError(e.message || 'An error occurred communicating with the secure vault.');
+      // Fallback to local storage vault if backend call fails
+      try {
+        const hashed = await hashPassword(password);
+        const storedHash = localStorage.getItem('zenguard_vault_hash');
+        if (!storedHash) {
+          localStorage.setItem('zenguard_vault_hash', hashed);
+        } else if (storedHash !== hashed) {
+          setError('Incorrect password.');
+          return;
+        }
+        const entries = journalStorage.getEntries();
+        onUnlock(password, entries);
+      } catch {
+        setError(e.message || 'An error occurred accessing the secure vault.');
+      }
     } finally {
       setLoading(false);
     }

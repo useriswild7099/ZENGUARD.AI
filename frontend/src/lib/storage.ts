@@ -5,6 +5,7 @@ const STREAK_KEY = 'zenguard_streak';
 
 export const journalStorage = {
   getEntries: (): JournalEntry[] => {
+    if (typeof window === 'undefined') return [];
     try {
       const data = localStorage.getItem(STORAGE_KEY);
       if (!data) return [];
@@ -19,6 +20,7 @@ export const journalStorage = {
   },
 
   saveEntry: (entry: JournalEntry): void => {
+    if (typeof window === 'undefined') return;
     const entries = journalStorage.getEntries();
     const existingIndex = entries.findIndex(e => e.id === entry.id);
     
@@ -33,12 +35,16 @@ export const journalStorage = {
   },
 
   deleteEntry: (id: string): void => {
+    if (typeof window === 'undefined') return;
     const entries = journalStorage.getEntries();
     const filtered = entries.filter(e => e.id !== id);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
   },
 
   getStreak: (): StreakData => {
+    if (typeof window === 'undefined') {
+      return { current: 0, longest: 0, total: 0, flexibleMode: true };
+    }
     try {
       const data = localStorage.getItem(STREAK_KEY);
       if (!data) {

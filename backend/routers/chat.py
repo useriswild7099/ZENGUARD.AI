@@ -50,6 +50,17 @@ async def get_chat_modes():
     }
 
 
+@router.get("/models")
+async def get_available_models():
+    """Get available installed Ollama models"""
+    ollama_client = OllamaClient.get_instance()
+    models = await ollama_client.get_available_models()
+    return {
+        "models": models,
+        "active": ollama_client.resolved_model
+    }
+
+
 # Global concurrency lock for rate-limiting
 generation_lock = asyncio.Lock()
 
@@ -60,9 +71,6 @@ async def chat(request: ChatRequest):
     
     Privacy: No conversation data is stored. Processing is ephemeral.
     """
-    if generation_lock.locked():
-        raise HTTPException(status_code=429, detail="AI is currently processing another request. Please wait.")
-        
     try:
         # Get shared client
         ollama_client = OllamaClient.get_instance()
@@ -116,7 +124,8 @@ async def chat(request: ChatRequest):
                     messages=messages,
                     system_prompt=system_prompt,
                     temperature=0.8,
-                    max_tokens=384
+                    max_tokens=384,
+                    model_override=request.model
                 )
             
             # Success — write to cache asynchronously (fire-and-forget)

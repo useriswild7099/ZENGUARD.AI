@@ -6,6 +6,8 @@
   "author": "ZenGuard AI",
   "main": "electron/main.js",
   "scripts": {
+    "build": "cd frontend && npm run build",
+    "start": "cd frontend && npm start",
     "electron:dev": "cd frontend && npx cross-env BUILD_TARGET=electron npm run build && cd .. && npx electron .",
     "electron:start": "npx electron .",
     "electron:build": "cd frontend && npx cross-env BUILD_TARGET=electron npm run build && cd .. && npx electron-builder --config electron-builder.yml",

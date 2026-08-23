@@ -4,7 +4,7 @@ import { Zap, Cpu, Lock, Globe, HardDrive, Code, ExternalLink } from 'lucide-rea
 
 export default function TechnicalPrivacySection() {
   const handleGithubLink = () => {
-    window.open('https://github.com/useriswild7099/zenguard-mental-health', '_blank', 'noopener,noreferrer');
+    window.open('https://github.com/useriswild7099/ZENGUARD.AI', '_blank', 'noopener,noreferrer');
   };
 
   return (

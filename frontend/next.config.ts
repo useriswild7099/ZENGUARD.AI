@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 /**
  * Next.js Configuration
@@ -12,6 +13,8 @@ import type { NextConfig } from "next";
 const isElectron = process.env.BUILD_TARGET === 'electron';
 
 const nextConfig: NextConfig = {
+  // Output file tracing root to handle monorepo lockfiles
+  outputFileTracingRoot: path.resolve(__dirname, '..'),
   // Enable static export only for Electron builds
   ...(isElectron && { output: 'export' }),
   // Skip lint/ts errors during build for smooth deployment
@@ -27,7 +30,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // CSP headers — only applied in web mode (static export doesn't support headers())
+  // Security headers — only applied in web mode (static export doesn't support headers())
   ...(!isElectron && {
     async headers() {
       return [
@@ -35,8 +38,20 @@ const nextConfig: NextConfig = {
           source: "/(.*)",
           headers: [
             {
-              key: "Content-Security-Policy",
-              value: "script-src 'self' 'unsafe-eval' 'unsafe-inline'; object-src 'none';"
+              key: "X-Frame-Options",
+              value: "SAMEORIGIN",
+            },
+            {
+              key: "X-Content-Type-Options",
+              value: "nosniff",
+            },
+            {
+              key: "Referrer-Policy",
+              value: "strict-origin-when-cross-origin",
+            },
+            {
+              key: "Permissions-Policy",
+              value: "camera=(), microphone=(self), geolocation=()",
             }
           ],
         },
@@ -46,3 +61,4 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+

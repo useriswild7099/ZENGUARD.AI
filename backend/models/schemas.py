@@ -231,6 +231,7 @@ class ChatRequest(BaseModel):
     mode: ChatMode = ChatMode.COMPASSIONATE_FRIEND
     session_id: Optional[str] = None
     history: List[ChatMessage] = []
+    model: Optional[str] = None
 
 
 

@@ -124,15 +124,38 @@ class OllamaClient:
     # ─── Model Resolution ─────────────────────────────────────────────────
 
     async def get_available_models(self) -> List[str]:
-        """Fetch all installed models from Ollama."""
+        """Fetch all installed models from Ollama, ordered by speed and reliability."""
         try:
             client = self._get_client(fast=True)
             response = await client.get(f"{self.base_url}/api/tags")
             if response.status_code == 200:
                 data = response.json()
-                models = [m.get("name", "") for m in data.get("models", [])]
-                self._available_models = models
-                return models
+                raw_models = [m.get("name", "") for m in data.get("models", [])]
+                
+                # Priority order based on benchmarked performance & VRAM efficiency
+                priority_order = [
+                    "smollm:latest",
+                    "smollm:360m",
+                    "smollm:135m",
+                    "therapyllama:latest",
+                    "gemma4:e2b",
+                    "qwen2.5-coder:7b",
+                    "qwen2.5-coder:7b-instruct-q4_K_M",
+                    "bitnet-3b:latest",
+                    "gemma3:latest",
+                    "gemma3:4b"
+                ]
+                
+                sorted_models = []
+                for p in priority_order:
+                    if p in raw_models:
+                        sorted_models.append(p)
+                for r in raw_models:
+                    if r not in sorted_models:
+                        sorted_models.append(r)
+                        
+                self._available_models = sorted_models
+                return sorted_models
         except Exception as e:
             logger.warning(f"Failed to fetch Ollama models: {e}")
         return []
@@ -226,19 +249,18 @@ class OllamaClient:
     
     # ─── Core Execution Engine ────────────────────────────────────────────
 
-    async def _execute_with_retry(self, payload: dict, fast: bool = False) -> dict:
+    async def _execute_with_retry(
+        self, payload: dict, fast: bool = False, override_model: Optional[str] = None
+    ) -> dict:
         """
         Core execution engine with exponential backoff, retries, and 
         automatic fallback to alternative models.
-        
-        Retry chain:
-        1. Try primary model (self.max_retries attempts)
-        2. Try fallback model (self.fallback_retries attempts)
-        3. Raise OllamaUnavailableError
         """
-        # ── Phase 1: Try primary model ──
+        target_model = override_model or self.resolved_model
+        
+        # ── Phase 1: Try target model ──
         primary_error = await self._try_model(
-            payload, self.resolved_model, self.max_retries, fast
+            payload, target_model, self.max_retries, fast
         )
         
         if primary_error is None:
@@ -247,20 +269,19 @@ class OllamaClient:
         
         logger.warning(f"Primary model failed: {primary_error}")
         
-        # ── Phase 2: Try fallback model ──
-        if self.fallback_model and self.fallback_model != self.resolved_model:
-            logger.info(f"Attempting fallback model: {self.fallback_model}")
-            fallback_error = await self._try_model(
-                payload, self.fallback_model, self.fallback_retries, fast
-            )
-            
-            if fallback_error is None:
-                return self._last_response
-            
-            logger.warning(f"Fallback model also failed: {fallback_error}")
+        # ── Phase 2: Try lightweight fallback models ──
+        lightweight_fallbacks = ["smollm:latest", "smollm:360m", "smollm:135m"]
+        for fb in lightweight_fallbacks:
+            if fb != target_model:
+                logger.info(f"Attempting lightweight fallback model: {fb}")
+                fallback_error = await self._try_model(
+                    payload, fb, 1, fast
+                )
+                if fallback_error is None:
+                    return self._last_response
+                logger.warning(f"Lightweight fallback '{fb}' failed: {fallback_error}")
         
         # ── Phase 3: Re-resolve models and try once more ──
-        # Maybe a new model was pulled while we were retrying
         if await self._resolve_best_model():
             last_chance_error = await self._try_model(
                 payload, self.resolved_model, 1, fast
@@ -309,6 +330,10 @@ class OllamaClient:
                 if e.response.status_code == 404:
                     self.resolved_model = None  # Force re-resolution
                     return f"Model '{model}' not found (404)"
+                err_lower = e.response.text.lower()
+                if "out-of-memory" in err_lower or "cuda" in err_lower or "memory" in err_lower:
+                    logger.error(f"Model '{model}' out of memory (OOM): {e.response.text}")
+                    return f"Model '{model}' out of memory (OOM)"
                 last_error = f"Ollama API Error: {e.response.status_code} - {e.response.text}"
             except httpx.ConnectError:
                 return "Ollama service is not running"
@@ -363,7 +388,8 @@ class OllamaClient:
         system_prompt: Optional[str] = None,
         temperature: float = 0.3,
         max_tokens: int = 512,
-        fast: bool = False
+        fast: bool = False,
+        model_override: Optional[str] = None
     ) -> str:
         """Generate response from a structured message list (multi-turn)."""
         full_messages = []
@@ -383,7 +409,7 @@ class OllamaClient:
             }
         }
         
-        data = await self._execute_with_retry(payload, fast)
+        data = await self._execute_with_retry(payload, fast, override_model=model_override)
         return data.get("message", {}).get("content", "")
     
     async def generate_json(

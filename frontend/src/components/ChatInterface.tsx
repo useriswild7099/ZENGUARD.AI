@@ -63,15 +63,28 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingModes, setIsLoadingModes] = useState(true);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string>('');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load available modes on mount
+  // Load available modes and models on mount
   useEffect(() => {
-    const loadModes = async () => {
+    const loadModesAndModels = async () => {
       setIsLoadingModes(true);
-      const fetchedModes = await chatClient.getModes();
+      const [fetchedModes, modelRes] = await Promise.all([
+        chatClient.getModes(),
+        chatClient.getModels()
+      ]);
+
+      if (modelRes.models && modelRes.models.length > 0) {
+        setAvailableModels(modelRes.models);
+        setSelectedModel(modelRes.active || modelRes.models[0]);
+      } else {
+        setAvailableModels(['smollm:latest', 'therapyllama:latest', 'gemma3:latest']);
+        setSelectedModel('smollm:latest');
+      }
       
       const topPriorities = [
         'carl_rogers',
@@ -100,7 +113,7 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
       setModes(sortedModes);
       setIsLoadingModes(false);
     };
-    loadModes();
+    loadModesAndModels();
   }, []);
 
   // Filter modes based on active category
@@ -164,7 +177,8 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
       const response = await chatClient.sendMessage(
         scrubbed,
         selectedMode.id,
-        messages
+        messages,
+        selectedModel || undefined
       );
       
       // Add AI response to chat
@@ -350,6 +364,34 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
           </div>
 
           <div className="absolute right-4 flex items-center gap-3">
+            {/* Model Selector Dropdown */}
+            <div className="flex items-center gap-1.5 bg-zinc-800/90 dark:bg-zinc-800/90 px-3 py-1 rounded-full border border-purple-500/30 text-xs shadow-sm">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-purple-400">
+                <rect x="4" y="4" width="16" height="16" rx="2"/>
+                <rect x="9" y="9" width="6" height="6"/>
+                <line x1="9" y1="1" x2="9" y2="4"/>
+                <line x1="15" y1="1" x2="15" y2="4"/>
+                <line x1="9" y1="20" x2="9" y2="23"/>
+                <line x1="15" y1="20" x2="15" y2="23"/>
+                <line x1="20" y1="9" x2="23" y2="9"/>
+                <line x1="20" y1="15" x2="23" y2="15"/>
+                <line x1="1" y1="9" x2="4" y2="9"/>
+                <line x1="1" y1="15" x2="4" y2="15"/>
+              </svg>
+              <select
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                className="bg-transparent text-xs font-semibold text-purple-200 focus:outline-none cursor-pointer pr-1"
+                title="Select Local AI Model"
+              >
+                {availableModels.map(m => (
+                  <option key={m} value={m} className="bg-zinc-900 text-white font-sans p-2">
+                    {m.includes('smollm') ? `⚡ ${m} (Fast)` : m.includes('therapy') ? `🧠 ${m} (Therapy)` : `🤖 ${m}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <button
               onClick={onBack}
               className="dark:text-zinc-400 text-zinc-500 dark:hover:text-white hover:text-zinc-900 transition-colors text-sm"

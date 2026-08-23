@@ -316,7 +316,7 @@ export default function Home() {
                 { icon: WifiOff, label: "Fully Offline", color: "text-green-400" },
                 { icon: Cpu, label: "Local Processing", color: "text-blue-400" },
                 { icon: UserX, label: "No Account Needed", color: "text-purple-400" },
-                { icon: Code, label: "Open Source", color: "text-yellow-400", action: () => window.open('https://github.com/useriswild7099/zenguard-mental-health', '_blank') }
+                { icon: Code, label: "Open Source", color: "text-yellow-400", action: () => window.open('https://github.com/useriswild7099/ZENGUARD.AI', '_blank') }
               ].map((item, i) => (
                 <div 
                   key={i} 

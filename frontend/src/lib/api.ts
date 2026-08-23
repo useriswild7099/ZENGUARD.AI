@@ -337,12 +337,26 @@ class ChatClient {
   }
 
   /**
+   * Get available installed Ollama models
+   */
+  async getModels(): Promise<{ models: string[]; active?: string }> {
+    try {
+      const response = await fetchWithTimeout(`${this.baseUrl}/api/models`, { timeout: 8000 });
+      if (!response.ok) return { models: [] };
+      return response.json();
+    } catch {
+      return { models: [] };
+    }
+  }
+
+  /**
    * Send a chat message
    */
   async sendMessage(
     message: string,
     mode: string,
-    history: ChatMessage[]
+    history: ChatMessage[],
+    model?: string
   ): Promise<ChatResponse> {
     const response = await fetchWithTimeout(`${this.baseUrl}/api/chat`, {
       method: 'POST',
@@ -353,6 +367,7 @@ class ChatClient {
         message,
         mode,
         history,
+        model,
       }),
       timeout: 60000 // 60s timeout for AI response
     });

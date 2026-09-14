@@ -124,7 +124,7 @@ class OllamaClient:
     # ─── Model Resolution ─────────────────────────────────────────────────
 
     async def get_available_models(self) -> List[str]:
-        """Fetch all installed models from Ollama, ordered by speed and reliability."""
+        """Fetch installed models filtered strictly to TherapyLlama and SmolLM."""
         try:
             client = self._get_client(fast=True)
             response = await client.get(f"{self.base_url}/api/tags")
@@ -132,33 +132,26 @@ class OllamaClient:
                 data = response.json()
                 raw_models = [m.get("name", "") for m in data.get("models", [])]
                 
-                # Priority order based on benchmarked performance & VRAM efficiency
-                priority_order = [
-                    "smollm:latest",
-                    "smollm:360m",
-                    "smollm:135m",
+                # Curated mental health & mobile inference models
+                curated_order = [
                     "therapyllama:latest",
-                    "gemma4:e2b",
-                    "qwen2.5-coder:7b",
-                    "qwen2.5-coder:7b-instruct-q4_K_M",
-                    "bitnet-3b:latest",
-                    "gemma3:latest",
-                    "gemma3:4b"
+                    "therapyllama",
+                    "smollm:latest",
+                    "smollm",
+                    "smollm:360m",
+                    "smollm:135m"
                 ]
                 
                 sorted_models = []
-                for p in priority_order:
-                    if p in raw_models:
+                for p in curated_order:
+                    if p in raw_models and p not in sorted_models:
                         sorted_models.append(p)
-                for r in raw_models:
-                    if r not in sorted_models:
-                        sorted_models.append(r)
                         
-                self._available_models = sorted_models
-                return sorted_models
+                self._available_models = sorted_models if sorted_models else ["therapyllama:latest", "smollm:latest"]
+                return self._available_models
         except Exception as e:
             logger.warning(f"Failed to fetch Ollama models: {e}")
-        return []
+        return ["therapyllama:latest", "smollm:latest"]
 
     async def _resolve_best_model(self) -> bool:
         """Finds the best matching model dynamically to prevent 404/500 errors."""

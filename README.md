@@ -1,4 +1,4 @@
-# ZenGuard AI 🛡️
+# ZenGuard AI
 > **Privacy-First Mental Health Companion & Real-Time Sentiment Analytics Platform**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](https://opensource.org/licenses/MIT)
@@ -7,22 +7,22 @@
 [![Next.js](https://img.shields.io/badge/Next.js-15.1-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19.0-61DAFB.svg)](https://react.dev/)
 [![Ollama](https://img.shields.io/badge/Ollama-100%25%20Local-FF6F00.svg)](https://ollama.com/)
-[![Privacy](https://img.shields.io/badge/Data%20Storage-ZERO%20%28Stateless%29-brightgreen.svg)](#-zero-knowledge-privacy-architecture)
+[![Privacy](https://img.shields.io/badge/Data%20Storage-ZERO%20%28Stateless%29-brightgreen.svg)](#zero-knowledge-privacy-architecture)
 
 ZenGuard AI is a high-performance, edge-computing mental health and emotional well-being platform designed specifically for students and individuals navigating stress, anxiety, burnout, and emotional regulation. By executing local-first Large Language Models (LLMs) on-device via **Ollama**, ZenGuard AI delivers clinical-grade conversational support, emotional masking detection, and somatic grounding exercises with **absolute privacy**—no data ever leaves your computer.
 
 ---
 
-## 🌟 Core Pillars & Highlights
+## Core Pillars and Highlights
 
 ```
  ┌────────────────────────────────────────────────────────────────────────┐
  │                              ZenGuard AI                               │
  │                                                                        │
- │  🔒 100% Offline       🧠 Dynamic Model Tiers    🎭 57+ AI Personas    │
+ │  100% Offline          Dynamic Model Tiers       57+ AI Personas       │
  │  No cloud dependencies   Meetara / Gemma / Llama    7-Tier Realism     │
  │                                                                        │
- │  🎨 Mood Doodle        🛡️ Client-Side PII Scrub  🔐 Encrypted Vault    │
+ │  Mood Doodle           Client-Side PII Scrub     Encrypted Vault       │
  │  Visual Sentiment Canvas   Zero-Trace Privacy        Local Key Lock    │
  └────────────────────────────────────────────────────────────────────────┘
 ```
@@ -37,7 +37,7 @@ ZenGuard AI is a high-performance, edge-computing mental health and emotional we
 
 ---
 
-## 🏛️ System Architecture
+## System Architecture
 
 ```mermaid
 flowchart TD
@@ -76,13 +76,13 @@ flowchart TD
 
 ---
 
-## 🚀 Quick Start (Automated & Manual)
+## Quick Start (Automated and Manual)
 
 ### Option 1: Automated 1-Click Launch (Recommended)
 
 ZenGuard AI includes self-contained bootstrap wizards that automatically detect, install missing dependencies via package managers, and launch all services.
 
-#### 🪟 Windows
+#### Windows
 ```powershell
 # 1. Run the automated installer wizard (installs Node, Python, Ollama, dependencies)
 install.bat
@@ -91,7 +91,7 @@ install.bat
 start.bat
 ```
 
-#### 🐧 Linux & 🍎 macOS
+#### Linux and macOS
 ```bash
 chmod +x install.sh start.sh
 ./install.sh
@@ -163,7 +163,7 @@ npm run electron:dev
 
 ---
 
-## 🧠 Local AI Models & Fallback Architecture
+## Local AI Models and Fallback Architecture
 
 ZenGuard AI features an automated **4-Tier Resilient Inference Hierarchy**:
 
@@ -183,14 +183,14 @@ Tier 4: Offline Clinical Rule-Based Grounding Engine (Guarantees 100% uptime)
 ### Supported Models in Chat Interface
 | Model Badge | Model Name | Primary Use Case | Speed / VRAM |
 | :--- | :--- | :--- | :--- |
-| ⚡ **Meetara Fast** | `meetara-qwen2.5-1.5b` | Instant companion chat, mobile/laptop friendly | Ultra-fast (~1.5GB VRAM) |
-| 🛡️ **Gemma 3** | `gemma3:4b` | Deep emotional nuance, chain-of-thought `<think>` | Balanced (~3.5GB VRAM) |
-| 🩺 **TherapyLlama** | `therapyllama:latest` | Specialized supportive dialogue, clinical grounding | High precision (~5.5GB VRAM) |
-| 🦙 **Llama 3.2** | `llama3.2:latest` | Concise everyday companion interaction | Fast (~2.0GB VRAM) |
+| **Meetara Fast** | `meetara-qwen2.5-1.5b` | Instant companion chat, mobile/laptop friendly | Ultra-fast (~1.5GB VRAM) |
+| **Gemma 3** | `gemma3:4b` | Deep emotional nuance, chain-of-thought `<think>` | Balanced (~3.5GB VRAM) |
+| **TherapyLlama** | `therapyllama:latest` | Specialized supportive dialogue, clinical grounding | High precision (~5.5GB VRAM) |
+| **Llama 3.2** | `llama3.2:latest` | Concise everyday companion interaction | Fast (~2.0GB VRAM) |
 
 ---
 
-## 🔒 Zero-Knowledge Privacy Architecture
+## Zero-Knowledge Privacy Architecture
 
 ZenGuard AI was built from first principles around digital sovereignty:
 
@@ -202,7 +202,7 @@ ZenGuard AI was built from first principles around digital sovereignty:
 
 ---
 
-## 📂 Project Organization
+## Project Organization
 
 ```
 neuralx health/
@@ -244,7 +244,7 @@ neuralx health/
 
 ---
 
-## 📡 REST API Reference
+## REST API Reference
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
@@ -258,7 +258,7 @@ neuralx health/
 
 ---
 
-## 🤝 Verification & Quality Standards
+## Verification and Quality Standards
 
 - **Type Safety**: Frontend passes `tsc --noEmit` with zero errors.
 - **Python Syntax**: All routers, services, and schemas compiled with zero syntax or runtime import discrepancies.
@@ -266,7 +266,7 @@ neuralx health/
 
 ---
 
-## 📜 License
+## License
 Distributed under the **MIT License**. See `LICENSE` for details.
 
 ---

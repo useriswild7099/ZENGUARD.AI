@@ -14,6 +14,7 @@ import json
 import asyncio
 import socket
 import logging
+import re
 from typing import Optional, Dict, Any, List
 
 from config import settings
@@ -373,7 +374,12 @@ class OllamaClient:
         }
         
         data = await self._execute_with_retry(payload, fast)
-        return data.get("message", {}).get("content", "")
+        raw_text = data.get("message", {}).get("content", "")
+        # Strip any raw EOS / special model tokens (e.g. </s>, <s>, <|eot_id|>, <|endoftext|>, <eos>)
+        clean = re.sub(r'<\/?s>', '', raw_text)
+        clean = re.sub(r'<\|(?:endoftext|eot_id|im_end|eos)\w*\|>', '', clean)
+        clean = re.sub(r'<eos>', '', clean)
+        return clean.strip()
 
     async def generate_chat(
         self,
@@ -403,7 +409,12 @@ class OllamaClient:
         }
         
         data = await self._execute_with_retry(payload, fast, override_model=model_override)
-        return data.get("message", {}).get("content", "")
+        raw_text = data.get("message", {}).get("content", "")
+        # Strip any raw EOS / special model tokens (e.g. </s>, <s>, <|eot_id|>, <|endoftext|>, <eos>)
+        clean = re.sub(r'<\/?s>', '', raw_text)
+        clean = re.sub(r'<\|(?:endoftext|eot_id|im_end|eos)\w*\|>', '', clean)
+        clean = re.sub(r'<eos>', '', clean)
+        return clean.strip()
     
     async def generate_json(
         self,

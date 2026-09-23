@@ -58,10 +58,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} ${courierPrime.variable}`}>
-      <body className="antialiased">
-        {/* Privacy Notice - Always visible */}
-        <div className="fixed bottom-4 left-4 z-50">
+    <html lang="en" className={`dark ${inter.variable} ${spaceGrotesk.variable} ${courierPrime.variable}`}>
+      <body className="antialiased bg-[#07070D] text-white">
+        {/* Privacy Notice - Visible on desktop, hidden on mobile to avoid viewport clipping */}
+        <div className="fixed bottom-4 left-4 z-40 hidden md:block">
           <div className="privacy-badge">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>

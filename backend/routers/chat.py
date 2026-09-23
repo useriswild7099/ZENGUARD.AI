@@ -141,9 +141,14 @@ You are {companion_name}.
                 )
             
             clean_res = response.strip()
-            # Clean any internal prompt scaffolding tags if leaked by model
+            # Clean any internal prompt scaffolding tags or leaked directives
             clean_res = re.sub(r"^\[[A-Z0-9_\s:-]{2,30}\]\s*", "", clean_res)
             clean_res = re.sub(r"^\*\*(?:User's Response|Response|AI|Assistant):\*\*\s*", "", clean_res, flags=re.IGNORECASE).strip()
+            clean_res = re.sub(r"The user'?s input is enclosed in <user_input>.*", "", clean_res, flags=re.IGNORECASE).strip()
+            # Strip special EOS tokens (e.g. </s>, <s>, <|eot_id|>, <|endoftext|>, <eos>)
+            clean_res = re.sub(r"<\/?s>", "", clean_res)
+            clean_res = re.sub(r"<\|(?:endoftext|eot_id|im_end|eos)\w*\|>", "", clean_res)
+            clean_res = re.sub(r"<eos>", "", clean_res).strip()
 
             # Success — write to cache asynchronously (fire-and-forget)
             asyncio.create_task(

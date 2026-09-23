@@ -43,7 +43,7 @@
 }
 
 .dark {
-  --background: #1a1a1a;
+  --background: #07070D;
   --foreground: oklch(0.985 0 0);
   --card: rgba(30, 30, 30, 0.7);
   --card-foreground: oklch(0.985 0 0);
@@ -889,6 +889,21 @@ body {
 
 .animate-sia-elastic-pop {
   animation: sia-elastic-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 8s ease-in-out infinite;
 }
 
 /* ===== PREMIUM GLASS PILL BUTTONS ===== */

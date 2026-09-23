@@ -110,7 +110,7 @@ export function QuickMoodCheck({ onNavigate }: QuickMoodCheckProps) {
 
   return (
     <div className="w-full max-w-4xl mx-auto my-8 px-4 z-20 relative">
-      <div className="relative rounded-3xl p-6 md:p-8 backdrop-blur-2xl border border-white/15 dark:bg-zinc-900/60 bg-white/70 shadow-2xl overflow-hidden transition-all">
+      <div className="relative rounded-3xl p-6 md:p-8 backdrop-blur-2xl border border-white/15 bg-black/40 dark:bg-zinc-950/60 shadow-2xl overflow-hidden transition-all">
         {/* Subtle Ambient Background Glow */}
         <div className="absolute -top-24 -left-24 w-60 h-60 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute -bottom-24 -right-24 w-60 h-60 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"></div>

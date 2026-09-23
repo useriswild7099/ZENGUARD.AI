@@ -128,13 +128,57 @@ const getModelBadge = (modelName: string) => {
       description: 'Specialized for deep counseling, reframing & empathy'
     };
   }
-  // Default to SmolLM Mobile
+  if (lower.includes('smollm')) {
+    return {
+      label: 'SmolLM Mobile',
+      tag: 'Ultra-Fast & Mobile (1.7B)',
+      icon: Zap,
+      color: 'text-amber-400',
+      description: 'Lightweight on-device model for lightning-fast replies'
+    };
+  }
+  if (lower.includes('gemma')) {
+    return {
+      label: 'Gemma 3',
+      tag: 'Google DeepMind (4B)',
+      icon: Sparkles,
+      color: 'text-emerald-400',
+      description: 'High-reasoning cognitive balance model'
+    };
+  }
+  if (lower.includes('llama')) {
+    return {
+      label: 'Llama 3.2',
+      tag: 'Meta AI Reasoning (3B)',
+      icon: ShieldCheck,
+      color: 'text-blue-400',
+      description: 'Balanced situational advice and structured guidance'
+    };
+  }
+  if (lower.includes('qwen') || lower.includes('meetara')) {
+    return {
+      label: 'Meetara / Qwen',
+      tag: 'Fine-Tuned Guidance (1.5B)',
+      icon: Sparkles,
+      color: 'text-rose-400',
+      description: 'Specialized emotional support and guidance'
+    };
+  }
+  if (lower.includes('mistral')) {
+    return {
+      label: 'Mistral 7B',
+      tag: 'Cognitive Reasoning',
+      icon: Cpu,
+      color: 'text-orange-400',
+      description: 'Fast, logical problem deconstruction'
+    };
+  }
   return {
-    label: 'SmolLM Mobile',
-    tag: 'Ultra-Fast & Mobile (1.7B)',
-    icon: Zap,
-    color: 'text-amber-400',
-    description: 'Lightweight on-device model for lightning-fast replies'
+    label: modelName.split(':')[0] || 'Local Model',
+    tag: 'Edge Neural Model',
+    icon: Cpu,
+    color: 'text-teal-400',
+    description: 'On-device neural model running locally'
   };
 };
 
@@ -214,25 +258,21 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
         chatClient.getModels()
       ]);
 
-      // Only allow TherapyLlama and SmolLM (filter out any other models)
-      const allowed = ['therapyllama:latest', 'smollm:latest'];
-      if (modelRes.models && modelRes.models.length > 0) {
-        const filtered = modelRes.models.filter(m => 
-          m.toLowerCase().includes('therapy') || m.toLowerCase().includes('smollm')
-        );
-        if (filtered.length > 0) {
-          // Put therapyllama first
-          filtered.sort((a, b) => (a.includes('therapy') ? -1 : 1));
-          setAvailableModels(filtered);
-          setSelectedModel(filtered[0]);
-        } else {
-          setAvailableModels(allowed);
-          setSelectedModel('therapyllama:latest');
-        }
-      } else {
-        setAvailableModels(allowed);
-        setSelectedModel('therapyllama:latest');
-      }
+      // Display all available models, sorting primary models first
+      const rawModels = (modelRes.models && modelRes.models.length > 0)
+        ? modelRes.models
+        : ['therapyllama:latest', 'smollm:latest', 'gemma3:latest', 'llama3.2:latest'];
+
+      const sortedModels = [...rawModels].sort((a, b) => {
+        if (a.toLowerCase().includes('therapy')) return -1;
+        if (b.toLowerCase().includes('therapy')) return 1;
+        if (a.toLowerCase().includes('smollm')) return -1;
+        if (b.toLowerCase().includes('smollm')) return 1;
+        return a.localeCompare(b);
+      });
+
+      setAvailableModels(sortedModels);
+      setSelectedModel(modelRes.active || sortedModels[0]);
       
       const topPriorities = [
         'carl_rogers',
@@ -329,8 +369,13 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
         selectedModel || undefined
       );
       
-      // Add AI response to chat
-      const aiMessage: ChatMessage = { role: 'assistant', content: response.response };
+      // Add AI response to chat with token sanitation
+      const cleanContent = (response.response || '')
+        .replace(/<\/?s>/gi, '')
+        .replace(/<\|(?:endoftext|eot_id|im_end|eos)\w*\|>/gi, '')
+        .replace(/<eos>/gi, '')
+        .trim();
+      const aiMessage: ChatMessage = { role: 'assistant', content: cleanContent };
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
       console.error('Chat error:', error);
@@ -587,7 +632,9 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
                     : 'dark:bg-zinc-900/80 bg-zinc-100 backdrop-blur-md dark:text-zinc-100 text-zinc-800 rounded-tl-sm border dark:border-white/10 border-zinc-200'
                 }`}
               >
-                <p className="text-sm md:text-[14.5px] whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                <p className="text-sm md:text-[14.5px] whitespace-pre-wrap leading-relaxed">
+                  {msg.content.replace(/<\/?s>/gi, '').replace(/<\|(?:endoftext|eot_id|im_end|eos)\w*\|>/gi, '').replace(/<eos>/gi, '').trim()}
+                </p>
               </div>
             </div>
           ))}

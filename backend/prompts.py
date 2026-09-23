@@ -741,7 +741,7 @@ MODE_INFO = {
         "description": "Compassion, inner peace, and gentle wisdom",
         "category": "spiritual",
         "color": "amber",
-        "image": "/personalities/Dalai Lama.png"
+        "image": "/personalities/dalai lama.png"
     },
     ChatMode.SADGURU: {
         "name": "Modern Mystic",
@@ -749,7 +749,7 @@ MODE_INFO = {
         "description": "Clarity, insight, and grounded realization",
         "category": "spiritual",
         "color": "green",
-        "image": "/personalities/Sadguru.png"
+        "image": "/personalities/sadguru.png"
     },
 
     # Psychology
@@ -759,7 +759,7 @@ MODE_INFO = {
         "description": "Unconditional positive regard and deep listening",
         "category": "psychology",
         "color": "teal",
-        "image": "/personalities/Carl Rogers.png"
+        "image": "/personalities/carl rogers.png"
     },
     ChatMode.SIGMUND_FREUD: {
         "name": "The Analyst",
@@ -767,7 +767,7 @@ MODE_INFO = {
         "description": "Exploring the depths of your mind and patterns",
         "category": "psychology",
         "color": "indigo",
-        "image": "/personalities/Sigmund Freud.png"
+        "image": "/personalities/sigmund freud.png"
     },
     ChatMode.OPRAH_MENTOR: {
         "name": "Empowering Mentor",
@@ -775,7 +775,7 @@ MODE_INFO = {
         "description": "Inspirational guidance to find your best self",
         "category": "psychology",
         "color": "purple",
-        "image": "/personalities/Oprah Mentor.png"
+        "image": "/personalities/oprah mentor.png"
     },
 
     # Entrepreneur
@@ -785,7 +785,7 @@ MODE_INFO = {
         "description": "Problem-solving with logic and humility",
         "category": "entrepreneur",
         "color": "blue",
-        "image": "/personalities/Logical Mentor.png"
+        "image": "/personalities/logical mentor.png"
     },
     ChatMode.MUKESH_AMBANI: {
         "name": "Visionary Builder",
@@ -793,7 +793,7 @@ MODE_INFO = {
         "description": "Long-term vision, patience, and discipline",
         "category": "entrepreneur",
         "color": "emerald",
-        "image": "/personalities/Mukesh Ambani.png"
+        "image": "/personalities/mukesh ambani.png"
     },
     ChatMode.ELON_MENTOR: {
         "name": "First Principles",
@@ -811,7 +811,7 @@ MODE_INFO = {
         "description": "Humor, wit, and real talk",
         "category": "famous",
         "color": "pink",
-        "image": "/personalities/Brittany Broski.png"
+        "image": "/personalities/brittany broski.png"
     },
     ChatMode.DELANEY_ROWE: {
         "name": "Delaney",
@@ -819,7 +819,7 @@ MODE_INFO = {
         "description": "Observant, dry humor, and main character energy",
         "category": "famous",
         "color": "violet",
-        "image": "/personalities/Delaney Rowe.png"
+        "image": "/personalities/delaney rowe.png"
     },
     ChatMode.ROB_ANDERSON: {
         "name": "Rob",
@@ -827,7 +827,7 @@ MODE_INFO = {
         "description": "Dry wit and calm, logical perspectives",
         "category": "famous",
         "color": "zinc",
-        "image": "/personalities/Rob Anderson.png"
+        "image": "/personalities/rob anderson.png"
     },
 
     # Indian Stars
@@ -903,7 +903,7 @@ MODE_INFO = {
         "description": "Deep questions to help you find your own answers",
         "category": "philosophers",
         "color": "stone",
-        "image": "/personalities/Socrates.png"
+        "image": "/personalities/socrates.png"
     },
     ChatMode.ALAN_WATTS: {
         "name": "The Mystic",
@@ -929,7 +929,7 @@ MODE_INFO = {
         "description": "Curiosity, imagination, and relatively simple answers",
         "category": "scientists",
         "color": "neutral",
-        "image": "/personalities/Albert Einstein.png"
+        "image": "/personalities/albert einstein.png"
     },
     ChatMode.APJ_ABDUL_KALAM: {
         "name": "Missile Man",
@@ -937,7 +937,7 @@ MODE_INFO = {
         "description": "Visionary, humble, and inspiring for students",
         "category": "scientists",
         "color": "orange",
-        "image": "/personalities/APJ Abdul Kalam.png"
+        "image": "/personalities/apj abdul kalam.png"
     },
     ChatMode.MARIE_CURIE: {
         "name": "Madame Curie",
@@ -945,7 +945,7 @@ MODE_INFO = {
         "description": "Persistence, dedication, and discovery",
         "category": "scientists",
         "color": "green",
-        "image": "/personalities/Marie Curie.png"
+        "image": "/personalities/marie curie.png"
     },
     ChatMode.STEVE_JOBS: {
         "name": "The Visionary",
@@ -953,7 +953,7 @@ MODE_INFO = {
         "description": "Design, focus, and thinking different",
         "category": "scientists",
         "color": "zinc",
-        "image": "/personalities/Steve Jobs.png"
+        "image": "/personalities/steve jobs.png"
     },
 
     # Tough Love
@@ -963,7 +963,7 @@ MODE_INFO = {
         "description": "No excuses. Pure discipline and mental hardness.",
         "category": "tough_love",
         "color": "stone",
-        "image": "/personalities/David Goggins.png"
+        "image": "/personalities/david goggins.png"
     },
     ChatMode.JORDAN_PETERSON: {
         "name": "The Professor",
@@ -971,7 +971,7 @@ MODE_INFO = {
         "description": "Responsibility, order, and cleaning your room",
         "category": "tough_love",
         "color": "blue",
-        "image": "/personalities/Jordan Peterson.png"
+        "image": "/personalities/jordan peterson.png"
     },
     ChatMode.STRICT_COACH: {
         "name": "Head Coach",
@@ -997,7 +997,7 @@ MODE_INFO = {
         "description": "Finds beauty and rhyme in your struggle",
         "category": "creative",
         "color": "indigo",
-        "image": "/personalities/The Poet.png"
+        "image": "/personalities/the poet.png"
     },
     ChatMode.THE_ARTIST: {
         "name": "The Artist",
@@ -1005,7 +1005,7 @@ MODE_INFO = {
         "description": "Seeing life through color, shape, and perspective",
         "category": "creative",
         "color": "fuchsia",
-        "image": "/personalities/The Artist.png"
+        "image": "/personalities/the artist.png"
     },
     ChatMode.THE_MUSICIAN: {
         "name": "The Musician",
@@ -1021,7 +1021,7 @@ MODE_INFO = {
         "description": "No mistakes, just happy accidents",
         "category": "creative",
         "color": "green",
-        "image": "/personalities/Bob Ross.png"
+        "image": "/personalities/bob ross.png"
     },
 
     # Family Expansion

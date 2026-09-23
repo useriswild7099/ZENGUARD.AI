@@ -67,6 +67,17 @@ research/
 .repomixignore
 REPOMIX.txt
 repomix-output.xml
+skills/
+.agents/
+tech_logos/
+tech_logos_*
+view_and_copy_logos.html
+view_mindmap.html
+convert_to_png.js
+render_mindmap_png.js
+generate_distance_qr.py
+zenguard_mindmap_transparent.*
+zenguard_qr_code.*
 
 # Testing
 coverage/

@@ -181,7 +181,8 @@ class ResponseCache:
                 entry["last_hit"] = now
                 self._save_persona_cache(persona, entries)
                 logger.info(f"[Cache] Exact hit for persona={persona}")
-                return entry["response"]
+                raw_r = entry["response"]
+                return re.sub(r'<\/?s>|<\|.*?\|>|<eos>', '', raw_r).strip()
 
         # Slow path: fuzzy keyword matching
         best_match = None
@@ -201,7 +202,8 @@ class ResponseCache:
             best_match["last_hit"] = now
             self._save_persona_cache(persona, entries)
             logger.info(f"[Cache] Fuzzy hit for persona={persona} (score={best_score:.2f})")
-            return best_match["response"]
+            raw_r = best_match["response"]
+            return re.sub(r'<\/?s>|<\|.*?\|>|<eos>', '', raw_r).strip()
 
         return None
 
@@ -214,6 +216,9 @@ class ResponseCache:
         """
         if not self._initialized:
             return
+
+        # Scrub any EOS tokens before saving
+        response = re.sub(r'<\/?s>|<\|.*?\|>|<eos>', '', response).strip()
 
         entries = self._load_persona_cache(persona)
         now = int(time.time())

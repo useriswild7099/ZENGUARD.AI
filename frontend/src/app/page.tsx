@@ -55,28 +55,32 @@ import React, { memo } from 'react';
 // Memoized background component to prevent re-renders when parent state changes
 const StaticBackground = memo(({ activeView, isLight }: { activeView: string; isLight: boolean }) => {
   return (
-    <div className={`fixed inset-0 overflow-hidden -z-10 transition-opacity duration-1000 ${isLight ? 'opacity-0' : 'opacity-100'}`} style={{ transform: 'translateZ(0)' }}>
-      {/* 
-        Using a high-quality starry sky image. 
-        If you want to use your exact local file, save it as "public/stars-bg.jpg" and change this src to "/stars-bg.jpg"
-      */}
+    <div className={`fixed inset-0 overflow-hidden -z-10 transition-opacity duration-1000 ${isLight ? 'opacity-0' : 'opacity-100'} bg-[#07070D]`} style={{ transform: 'translateZ(0)' }}>
+      {/* Starry sky image with object-top so stars are visible on tall mobile screens */}
       <Image
         src="/stars-bg.jpg"
         alt="Starry Night Background"
         fill
         priority
-        className="object-cover will-change-transform"
+        className="object-cover object-top will-change-transform opacity-75 mix-blend-screen"
         style={{ 
-          filter: activeView === 'landing' ? 'brightness(0.8)' : activeView === 'help' ? 'brightness(0.3)' : 'brightness(0.5)',
+          filter: activeView === 'landing' ? 'brightness(0.9) contrast(1.15)' : activeView === 'help' ? 'brightness(0.35)' : 'brightness(0.55)',
           transform: 'translate3d(0, 0, 0)'
         }}
       />
+
+      {/* Vibrant Aurora Ambient Mesh Glow Orbs - Eliminates dullness on mobile phone displays */}
+      <div className="absolute -top-[10%] left-[5%] w-[85vw] md:w-[650px] h-[85vw] md:h-[650px] rounded-full bg-gradient-to-br from-purple-600/35 via-indigo-600/25 to-transparent blur-[90px] md:blur-[140px] pointer-events-none animate-pulse-slow"></div>
+      <div className="absolute top-[35%] -right-[15%] w-[75vw] md:w-[500px] h-[75vw] md:h-[500px] rounded-full bg-gradient-to-bl from-cyan-500/25 via-blue-600/20 to-transparent blur-[80px] md:blur-[120px] pointer-events-none"></div>
+      <div className="absolute top-[65%] -left-[10%] w-[80vw] md:w-[550px] h-[80vw] md:h-[550px] rounded-full bg-gradient-to-tr from-pink-500/20 via-purple-600/18 to-transparent blur-[85px] md:blur-[130px] pointer-events-none"></div>
+
+      {/* Glass overlay with smooth fade */}
       <div className={`absolute inset-0 transition-all duration-700 ${
-        activeView === 'help' ? 'bg-black/80 backdrop-blur-[4px]' :
-        activeView === 'knowledge' ? 'bg-black/60 backdrop-blur-[3px]' :
-        activeView === 'chat' ? 'bg-black/50 backdrop-blur-[2px]' :
-        activeView === 'landing' ? 'bg-gradient-to-b from-black/20 via-transparent to-black/60' :
-        'bg-black/50 backdrop-blur-[1px]'
+        activeView === 'help' ? 'bg-black/75 backdrop-blur-[4px]' :
+        activeView === 'knowledge' ? 'bg-black/55 backdrop-blur-[3px]' :
+        activeView === 'chat' ? 'bg-black/45 backdrop-blur-[2px]' :
+        activeView === 'landing' ? 'bg-gradient-to-b from-[#07070D]/40 via-transparent to-[#07070D]/85' :
+        'bg-black/45 backdrop-blur-[1px]'
       }`} style={{ transform: 'translateZ(0)' }}></div>
     </div>
   );
@@ -285,7 +289,14 @@ export default function Home() {
                 {/* Privacy & Feature Badges */}
                 <div className="flex flex-wrap justify-center gap-2 mb-10 animate-fade-up stagger-3">
                   {['100% Private', 'Local AI Engine', 'Zero Server Logs', 'Offline Ready'].map((badge, idx) => (
-                    <span key={idx} className="px-3 py-1 rounded-full text-xs font-mono font-medium dark:bg-white/10 dark:text-white/80 bg-zinc-100 text-zinc-700 border dark:border-white/10 border-zinc-300">
+                    <span 
+                      key={idx} 
+                      className={`px-3 py-1 rounded-full text-xs font-mono font-medium border backdrop-blur-md transition-colors ${
+                        isLight 
+                          ? 'bg-zinc-100 text-zinc-700 border-zinc-300' 
+                          : 'bg-white/10 text-white/90 border-white/15'
+                      }`}
+                    >
                       ✓ {badge}
                     </span>
                   ))}
@@ -298,11 +309,23 @@ export default function Home() {
                   { label: "MindSpace\nLibrary", view: 'knowledge', icon: GraduationCap, color: 'blue' },
                   { label: "Professional\nHelp Hub", view: 'help', icon: LifeBuoy, color: 'red' }
                 ].map((btn, i) => (
-                  <button key={i} onClick={() => navigateTo(btn.view as any)} className={`glass-pill-button group p-6 flex flex-col items-center justify-center gap-3 min-h-[140px] text-center dark:bg-transparent dark:border-white/10 bg-zinc-50 hover:bg-zinc-100 border-zinc-200 shadow-sm`}>
-                    <div className={`p-3 rounded-full border transition-all duration-500 dark:bg-white/5 dark:border-white/10 bg-zinc-200/50 border-zinc-300 group-hover:scale-110 group-hover:rotate-6`}>
-                      <btn.icon className={`w-6 h-6 ${btn.color === 'purple' ? 'text-purple-500' : btn.color === 'blue' ? 'text-blue-500' : btn.color === 'red' ? 'text-red-500' : 'dark:text-white text-zinc-700'}`} />
+                  <button 
+                    key={i} 
+                    onClick={() => navigateTo(btn.view as any)} 
+                    className={`glass-pill-button group p-6 flex flex-col items-center justify-center gap-3 min-h-[140px] text-center border shadow-sm ${
+                      isLight 
+                        ? 'bg-white/80 hover:bg-white border-zinc-200' 
+                        : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/15'
+                    }`}
+                  >
+                    <div className={`p-3 rounded-full border transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 ${
+                      isLight 
+                        ? 'bg-zinc-100 border-zinc-200' 
+                        : 'bg-white/5 border-white/15'
+                    }`}>
+                      <btn.icon className={`w-6 h-6 ${btn.color === 'purple' ? 'text-purple-400' : btn.color === 'blue' ? 'text-blue-400' : btn.color === 'red' ? 'text-red-400' : isLight ? 'text-zinc-700' : 'text-white'}`} />
                     </div>
-                    <span className={`font-bold leading-tight whitespace-pre-line text-base drop-shadow-sm dark:text-white text-zinc-800`}>{btn.label}</span>
+                    <span className={`font-bold leading-tight whitespace-pre-line text-base drop-shadow-sm ${isLight ? 'text-zinc-800' : 'text-white'}`}>{btn.label}</span>
                   </button>
                 ))}
               </div>
